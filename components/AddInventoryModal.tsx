@@ -142,11 +142,12 @@ export function AddInventoryModal({ visible, onClose, onSave }: AddInventoryModa
       onRequestClose={onClose}
     >
       <KeyboardAvoidingView
-        style={[styles.keyboardView, { backgroundColor: colors.background }]}
+        style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
       >
-        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+        <View style={{ flex: 1, backgroundColor: colors.background }}>
+        <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
         {/* Header */}
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
           <Pressable onPress={onClose} style={styles.headerButton}>
@@ -297,7 +298,8 @@ export function AddInventoryModal({ visible, onClose, onSave }: AddInventoryModa
             </View>
           </View>
         </ScrollView>
-      </SafeAreaView>
+        </SafeAreaView>
+        </View>
       </KeyboardAvoidingView>
     </Modal>
   );

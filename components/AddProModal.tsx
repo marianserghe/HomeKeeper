@@ -127,151 +127,156 @@ export function AddProModal({ visible, onClose, onSave, initialCategory, editing
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
-        {/* Header */}
-        <View style={[styles.header, { borderBottomColor: colors.border }]}>
-          <Pressable onPress={onClose} style={styles.headerButton}>
-            <Ionicons name="close" size={24} color={colors.textSecondary} />
-          </Pressable>
-          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{editingPro ? 'Edit Pro' : 'Add Pro'}</Text>
-          <Pressable
-            onPress={handleSave}
-            style={[styles.headerButton, styles.saveButton, { backgroundColor: colors.primary }]}
-            disabled={!name.trim()}
-          >
-            <Text style={styles.saveText}>Save</Text>
-          </Pressable>
-        </View>
-
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.keyboardView}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
-        >
-          <ScrollView style={styles.scrollView} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-            {/* Name */}
-            <View style={styles.field}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Name *</Text>
-              <TextInput
-                style={[styles.input, { backgroundColor: colors.surface, color: colors.textPrimary, borderColor: colors.border }]}
-                value={name}
-                onChangeText={setName}
-                placeholder="e.g., John Smith"
-                placeholderTextColor={colors.textTertiary}
-                autoCapitalize="words"
-              />
+      <KeyboardAvoidingView
+        style={styles.keyboardView}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+      >
+        <View style={{ flex: 1, backgroundColor: colors.background }}>
+          <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+            {/* Header */}
+            <View style={[styles.header, { borderBottomColor: colors.border }]}>
+              <Pressable onPress={onClose} style={styles.headerButton}>
+                <Ionicons name="close" size={24} color={colors.textSecondary} />
+              </Pressable>
+              <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{editingPro ? 'Edit Pro' : 'Add Pro'}</Text>
+              <Pressable
+                onPress={handleSave}
+                style={[styles.headerButton, styles.saveButton, { backgroundColor: colors.primary }]}
+                disabled={!name.trim()}
+              >
+                <Text style={styles.saveText}>Save</Text>
+              </Pressable>
             </View>
 
-            {/* Category */}
-            <View style={styles.field}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Type</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View style={styles.categoryRow}>
-                  {PRO_CATEGORIES.map(cat => (
-                    <Pressable
-                      key={cat.key}
-                      style={[
-                        styles.categoryChip,
-                        { backgroundColor: colors.surface, borderColor: colors.border },
-                        category === cat.key && { backgroundColor: colors.primary + '20', borderColor: colors.primary },
-                      ]}
-                      onPress={() => setCategory(cat.key)}
-                    >
-                      <Ionicons
-                        name={cat.icon}
-                        size={18}
-                        color={category === cat.key ? colors.primary : colors.textTertiary}
-                      />
-                      <Text
+            <ScrollView style={styles.scrollView} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+              {/* Name */}
+              <View style={styles.field}>
+                <Text style={[styles.label, { color: colors.textSecondary }]}>Name *</Text>
+                <TextInput
+                  style={[styles.input, { backgroundColor: colors.surface, color: colors.textPrimary, borderColor: colors.border }]}
+                  value={name}
+                  onChangeText={setName}
+                  placeholder="e.g., John Smith"
+                  placeholderTextColor={colors.textTertiary}
+                  autoCapitalize="words"
+                />
+              </View>
+
+              {/* Category */}
+              <View style={styles.field}>
+                <Text style={[styles.label, { color: colors.textSecondary }]}>Type</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <View style={styles.categoryRow}>
+                    {PRO_CATEGORIES.map(cat => (
+                      <Pressable
+                        key={cat.key}
                         style={[
-                          styles.categoryText,
-                          { color: colors.textSecondary },
-                          category === cat.key && { color: colors.primary, fontWeight: '600' },
+                          styles.categoryChip,
+                          { backgroundColor: colors.surface, borderColor: colors.border },
+                          category === cat.key && { backgroundColor: colors.primary + '20', borderColor: colors.primary },
                         ]}
+                        onPress={() => setCategory(cat.key)}
                       >
-                        {cat.label}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-              </ScrollView>
-            </View>
+                        <Ionicons
+                          name={cat.icon}
+                          size={18}
+                          color={category === cat.key ? colors.primary : colors.textTertiary}
+                        />
+                        <Text
+                          style={[
+                            styles.categoryText,
+                            { color: colors.textSecondary },
+                            category === cat.key && { color: colors.primary, fontWeight: '600' },
+                          ]}
+                        >
+                          {cat.label}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </ScrollView>
+              </View>
 
-            {/* Company */}
-            <View style={styles.field}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Company (optional)</Text>
-              <TextInput
-                style={[styles.input, { backgroundColor: colors.surface, color: colors.textPrimary, borderColor: colors.border }]}
-                value={company}
-                onChangeText={setCompany}
-                placeholder="Company name"
-                placeholderTextColor={colors.textTertiary}
-              />
-            </View>
+              {/* Company */}
+              <View style={styles.field}>
+                <Text style={[styles.label, { color: colors.textSecondary }]}>Company (optional)</Text>
+                <TextInput
+                  style={[styles.input, { backgroundColor: colors.surface, color: colors.textPrimary, borderColor: colors.border }]}
+                  value={company}
+                  onChangeText={setCompany}
+                  placeholder="Company name"
+                  placeholderTextColor={colors.textTertiary}
+                />
+              </View>
 
-            {/* Phone */}
-            <View style={styles.field}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Phone</Text>
-              <TextInput
-                style={[styles.input, { backgroundColor: colors.surface, color: colors.textPrimary, borderColor: colors.border }]}
-                value={phone}
-                onChangeText={(text) => {
-                  // Format phone as user types: (555) 123-4567
-                  const digits = text.replace(/\D/g, '');
-                  let formatted = digits;
-                  if (digits.length > 0) {
-                    formatted = '(' + digits.substring(0, 3);
-                  }
-                  if (digits.length > 3) {
-                    formatted += ') ' + digits.substring(3, 6);
-                  }
-                  if (digits.length > 6) {
-                    formatted += '-' + digits.substring(6, 10);
-                  }
-                  setPhone(formatted);
-                }}
-                placeholder="(555) 123-4567"
-                placeholderTextColor={colors.textTertiary}
-                keyboardType="phone-pad"
-                maxLength={14}
-              />
-            </View>
+              {/* Phone */}
+              <View style={styles.field}>
+                <Text style={[styles.label, { color: colors.textSecondary }]}>Phone</Text>
+                <TextInput
+                  style={[styles.input, { backgroundColor: colors.surface, color: colors.textPrimary, borderColor: colors.border }]}
+                  value={phone}
+                  onChangeText={(text) => {
+                    // Format phone as user types: (555) 123-4567
+                    const digits = text.replace(/\D/g, '');
+                    let formatted = digits;
+                    if (digits.length > 0) {
+                      formatted = '(' + digits.substring(0, 3);
+                    }
+                    if (digits.length > 3) {
+                      formatted += ') ' + digits.substring(3, 6);
+                    }
+                    if (digits.length > 6) {
+                      formatted += '-' + digits.substring(6, 10);
+                    }
+                    setPhone(formatted);
+                  }}
+                  placeholder="(555) 123-4567"
+                  placeholderTextColor={colors.textTertiary}
+                  keyboardType="phone-pad"
+                  maxLength={14}
+                />
+              </View>
 
-            {/* Email */}
-            <View style={styles.field}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Email</Text>
-              <TextInput
-                style={[styles.input, { backgroundColor: colors.surface, color: colors.textPrimary, borderColor: colors.border }]}
-                value={email}
-                onChangeText={setEmail}
-                placeholder="email@example.com"
-                placeholderTextColor={colors.textTertiary}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-            </View>
+              {/* Email */}
+              <View style={styles.field}>
+                <Text style={[styles.label, { color: colors.textSecondary }]}>Email</Text>
+                <TextInput
+                  style={[styles.input, { backgroundColor: colors.surface, color: colors.textPrimary, borderColor: colors.border }]}
+                  value={email}
+                  onChangeText={setEmail}
+                  placeholder="email@example.com"
+                  placeholderTextColor={colors.textTertiary}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+              </View>
 
-            {/* Notes */}
-            <View style={styles.field}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Notes</Text>
-              <TextInput
-                style={[styles.input, styles.textArea, { backgroundColor: colors.surface, color: colors.textPrimary, borderColor: colors.border }]}
-                value={notes}
-                onChangeText={setNotes}
-                placeholder="Add notes about this contractor..."
-                placeholderTextColor={colors.textTertiary}
-                multiline
-                numberOfLines={4}
-              />
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
+              {/* Notes */}
+              <View style={styles.field}>
+                <Text style={[styles.label, { color: colors.textSecondary }]}>Notes</Text>
+                <TextInput
+                  style={[styles.input, styles.textArea, { backgroundColor: colors.surface, color: colors.textPrimary, borderColor: colors.border }]}
+                  value={notes}
+                  onChangeText={setNotes}
+                  placeholder="Add notes about this contractor..."
+                  placeholderTextColor={colors.textTertiary}
+                  multiline
+                  numberOfLines={4}
+                />
+              </View>
+            </ScrollView>
+          </SafeAreaView>
+        </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  keyboardView: {
+    flex: 1,
+  },
   container: {
     flex: 1,
   },
@@ -299,9 +304,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
     fontSize: 15,
-  },
-  keyboardView: {
-    flex: 1,
   },
   scrollView: {
     flex: 1,
