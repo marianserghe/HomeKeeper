@@ -125,11 +125,11 @@ export function HomeHealthCard({ score, overdueCount, onPress }: HomeHealthCardP
               styles.scoreContainer,
               { opacity: scoreOpacity, transform: [{ scale: scoreScale }] }
             ]}>
-              <Text style={[styles.scoreNumber, { color: scoreColor }]}>
-                {Math.round(score)}
-              </Text>
               <Text style={[styles.scoreLabel, { color: colors.textSecondary }]}>
                 Home Health
+              </Text>
+              <Text style={[styles.scoreNumber, { color: scoreColor }]}>
+                {Math.round(score)}
               </Text>
             </Animated.View>
 
@@ -187,18 +187,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   scoreNumber: {
-    fontSize: 96,
+    fontSize: 128,
     fontFamily: 'BebasNeue',
     fontWeight: '400',
     letterSpacing: -2,
-    lineHeight: 96,
+    lineHeight: 128,
+    marginTop: 4,
   },
   scoreLabel: {
     fontSize: 13,
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 1,
-    marginTop: 4,
   },
   textSection: {
     alignItems: 'center',
