@@ -302,7 +302,7 @@ export default function TasksScreen() {
             <Text style={[styles.taskDue, { color: statusColor }]}>
               {formatDate(task.dueDate)}
             </Text>
-            {task.isRecurring && (
+            {(task.isRecurring || task.recurring) && (
               <Ionicons name="repeat" size={14} color={colors.textTertiary} style={styles.recurringIcon} />
             )}
           </View>
