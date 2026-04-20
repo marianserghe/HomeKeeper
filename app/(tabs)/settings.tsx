@@ -19,7 +19,7 @@ const APP_VERSION = '1.0.0';
 
 export default function SettingsScreen() {
   const { colors, theme, setTheme } = useTheme();
-  const { homeInfo, updateHomeInfo, settings, updateSettings, tasks, pros, inventory, healthScore, clearAllData, properties, activePropertyId, reorderProperties, setActiveProperty, deleteProperty, addProperty, updateProperty, loadData } = useApp();
+  const { homeInfo, updateHomeInfo, settings, updateSettings, activePropertyTasks, activePropertyPros, activePropertyInventory, healthScore, clearAllData, properties, activePropertyId, reorderProperties, setActiveProperty, deleteProperty, addProperty, updateProperty, loadData } = useApp();
   
   const [editingProperty, setEditingProperty] = useState<typeof properties[0] | null>(null);
   const [addPropertyModalVisible, setAddPropertyModalVisible] = useState(false);
@@ -196,15 +196,15 @@ export default function SettingsScreen() {
             <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Health</Text>
           </View>
           <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: colors.warning }]}>{tasks.length}</Text>
+            <Text style={[styles.statValue, { color: colors.warning }]}>{activePropertyTasks.length}</Text>
             <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Tasks</Text>
           </View>
           <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: colors.success }]}>{pros.length}</Text>
+            <Text style={[styles.statValue, { color: colors.success }]}>{activePropertyPros.length}</Text>
             <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Pros</Text>
           </View>
           <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: colors.info }]}>{inventory.length}</Text>
+            <Text style={[styles.statValue, { color: colors.info }]}>{activePropertyInventory.length}</Text>
             <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Items</Text>
           </View>
         </View>
@@ -233,7 +233,7 @@ export default function SettingsScreen() {
                     const granted = await requestNotificationPermissions();
                     if (granted) {
                       updateSettings({ reminders: value });
-                      await scheduleAllTaskReminders(tasks, true);
+                      await scheduleAllTaskReminders(activePropertyTasks, true);
                     }
                   } else {
                     await cancelAllNotifications();
