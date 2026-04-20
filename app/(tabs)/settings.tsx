@@ -7,6 +7,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useApp } from '../../contexts/AppContext';
 import { autocompleteAddress, AddressSuggestion } from '../../lib/zestimate';
 import { AddPropertyModal } from '../../components/AddPropertyModal';
+import { requestNotificationPermissions, cancelAllNotifications, scheduleAllTaskReminders } from '../../lib/notifications';
 
 // App version from app.json
 const APP_VERSION = '1.0.0';
@@ -226,7 +227,16 @@ export default function SettingsScreen() {
               <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>Notifications</Text>
               <Switch
                 value={settings.notifications}
-                onValueChange={(value) => updateSettings({ notifications: value })}
+                onValueChange={async (value) => {
+                  if (value) {
+                    const granted = await requestNotificationPermissions();
+                    if (granted) {
+                      updateSettings({ notifications: value });
+                    }
+                  } else {
+                    updateSettings({ notifications: value });
+                  }
+                }}
                 trackColor={{ false: colors.gray300, true: colors.primary }}
                 thumbColor={colors.white}
               />
@@ -236,7 +246,18 @@ export default function SettingsScreen() {
               <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>Task Reminders</Text>
               <Switch
                 value={settings.reminders}
-                onValueChange={(value) => updateSettings({ reminders: value })}
+                onValueChange={async (value) => {
+                  if (value) {
+                    const granted = await requestNotificationPermissions();
+                    if (granted) {
+                      updateSettings({ reminders: value });
+                      await scheduleAllTaskReminders(tasks, true);
+                    }
+                  } else {
+                    await cancelAllNotifications();
+                    updateSettings({ reminders: value });
+                  }
+                }}
                 trackColor={{ false: colors.gray300, true: colors.primary }}
                 thumbColor={colors.white}
               />

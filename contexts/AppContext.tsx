@@ -5,6 +5,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Task, TaskCategory, TaskStatus, TaskPriority, RecurringSchedule } from '../lib/tasks';
+import { requestNotificationPermissions, scheduleAllTaskReminders, cancelAllNotifications } from '../lib/notifications';
 
 // Types
 export interface Pro {
@@ -171,6 +172,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       saveData();
     }
   }, [state]);
+
+  // Schedule task reminders when tasks change
+  useEffect(() => {
+    if (state.settings.reminders && state.tasks.length > 0) {
+      scheduleAllTaskReminders(state.tasks, true);
+    }
+  }, [state.tasks, state.settings.reminders]);
 
   // Computed values - filtered by active property
   // Include tasks without propertyId (legacy) in active property
@@ -443,11 +451,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   // Settings
-  const updateSettings = (settings: Partial<AppState['settings']>) => {
+  const updateSettings = async (settings: Partial<AppState['settings']>) => {
     setState(prev => ({ 
       ...prev, 
       settings: { ...prev.settings, ...settings } 
     }));
+    
+    // Handle reminder toggle
+    if ('reminders' in settings) {
+      if (settings.reminders) {
+        const granted = await requestNotificationPermissions();
+        if (granted) {
+          await scheduleAllTaskReminders(state.tasks, true);
+        }
+      } else {
+        await cancelAllNotifications();
+      }
+    }
   };
 
   // Data persistence
