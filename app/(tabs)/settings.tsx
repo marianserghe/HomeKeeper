@@ -123,94 +123,69 @@ export default function SettingsScreen() {
 
         {/* Properties */}
         {properties.length >= 1 && (
-          <View style={styles.propertiesSection}>
-            <View style={styles.propertiesHeader}>
-              <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Properties</Text>
-              <Pressable
-                onPress={() => {
-                  setEditingProperty(null);
-                  setAddPropertyModalVisible(true);
-                }}
-                style={styles.addPropertyBtn}
-              >
-                <Ionicons name="add-circle" size={24} color={colors.primary} />
-              </Pressable>
-            </View>
-            
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.propertiesChips}
-            >
-              {properties.map((property, index) => {
-                const isActive = property.id === activePropertyId;
-                return (
-                  <Pressable
-                    key={property.id || index}
-                    onLongPress={() => {
-                      // Drag-and-drop for horizontal chips is complex
-                      // Arrows below provide reorder functionality
-                    }}
-                    onPress={() => property.id && setActiveProperty(property.id)}
-                    style={[
-                      styles.propertyChip,
-                      { backgroundColor: isActive ? colors.primary : colors.surface, borderColor: isActive ? colors.primary : colors.border },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.propertyChipText,
-                        { color: isActive ? colors.white : colors.textPrimary },
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {property.name || 'Property'}
-                    </Text>
-                    {isActive && (
-                      <View style={[styles.activeDot, { backgroundColor: colors.white }]} />
-                    )}
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-            
-            {/* Reorder controls (shown below chips) */}
-            {properties.length > 1 && (
-              <View style={styles.reorderSection}>
-                {properties.map((property, index) => (
-                  <View key={property.id || index} style={styles.reorderRow}>
-                    <Text style={[styles.reorderLabel, { color: colors.textSecondary }]} numberOfLines={1}>
-                      {property.name || 'Property'}
-                    </Text>
-                    <View style={styles.reorderArrows}>
-                      <Pressable
-                        onPress={() => index > 0 && reorderProperties(index, index - 1)}
-                        disabled={index === 0}
-                        style={[styles.arrowBtn, index === 0 && styles.arrowBtnDisabled]}
-                      >
-                        <Ionicons name="chevron-up" size={18} color={index === 0 ? colors.textTertiary : colors.textSecondary} />
-                      </Pressable>
-                      <Pressable
-                        onPress={() => index < properties.length - 1 && reorderProperties(index, index + 1)}
-                        disabled={index === properties.length - 1}
-                        style={[styles.arrowBtn, index === properties.length - 1 && styles.arrowBtnDisabled]}
-                      >
-                        <Ionicons name="chevron-down" size={18} color={index === properties.length - 1 ? colors.textTertiary : colors.textSecondary} />
-                      </Pressable>
-                    </View>
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Properties</Text>
+            <View style={[styles.sectionContent, { backgroundColor: colors.surface }]}>
+              {properties.map((property, index) => (
+                <View
+                  key={property.id}
+                  style={[
+                    styles.settingRow,
+                    { borderBottomColor: colors.border },
+                    index === properties.length - 1 && { borderBottomWidth: 0 }
+                  ]}
+                >
+                  {/* Reorder controls */}
+                  <View style={styles.reorderControls}>
                     <Pressable
-                      onPress={() => {
-                        setEditingProperty(property);
-                        setAddPropertyModalVisible(true);
-                      }}
-                      style={styles.editPropertyBtn}
+                      onPress={() => index > 0 && reorderProperties(index, index - 1)}
+                      disabled={index === 0}
+                      style={[styles.reorderBtn, index === 0 && styles.reorderBtnDisabled]}
                     >
-                      <Ionicons name="pencil" size={16} color={colors.textTertiary} />
+                      <Ionicons name="chevron-up" size={16} color={index === 0 ? colors.textTertiary : colors.textSecondary} />
+                    </Pressable>
+                    <Pressable
+                      onPress={() => index < properties.length - 1 && reorderProperties(index, index + 1)}
+                      disabled={index === properties.length - 1}
+                      style={[styles.reorderBtn, index === properties.length - 1 && styles.reorderBtnDisabled]}
+                    >
+                      <Ionicons name="chevron-down" size={16} color={index === properties.length - 1 ? colors.textTertiary : colors.textSecondary} />
                     </Pressable>
                   </View>
-                ))}
-              </View>
-            )}
+
+                  {/* Tap to edit property */}
+                  <Pressable 
+                    style={styles.propertyInfo}
+                    onPress={() => {
+                      setEditingProperty(property);
+                      setAddPropertyModalVisible(true);
+                    }}
+                  >
+                    <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>
+                      {property.name || 'Property'}
+                    </Text>
+                    {property.address && (
+                      <Text style={[styles.propertyAddress, { color: colors.textTertiary }]}>
+                        {property.address}
+                      </Text>
+                    )}
+                  </Pressable>
+
+                  {property.id === activePropertyId ? (
+                    <View style={[styles.activeBadge, { backgroundColor: colors.primary + '20' }]}>
+                      <Text style={[styles.activeBadgeText, { color: colors.primary }]}>Active</Text>
+                    </View>
+                  ) : (
+                    <Pressable 
+                      style={[styles.setActiveBtn, { borderColor: colors.border }]}
+                      onPress={() => property.id && setActiveProperty(property.id)}
+                    >
+                      <Text style={[styles.setActiveText, { color: colors.textSecondary }]}>Set Active</Text>
+                    </Pressable>
+                  )}
+                </View>
+              ))}
+            </View>
           </View>
         )}
 
