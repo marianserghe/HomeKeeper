@@ -11,8 +11,6 @@ import {
   Pressable,
   TextInput,
   Modal,
-  Platform,
-  KeyboardAvoidingView,
   Image,
   Alert,
 } from 'react-native';
@@ -141,12 +139,7 @@ export function AddInventoryModal({ visible, onClose, onSave }: AddInventoryModa
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <KeyboardAvoidingView
-        style={styles.keyboardView}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={0}
-      >
-        <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
         <SafeAreaView style={styles.container} edges={['top']}>
         {/* Header */}
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
@@ -300,7 +293,6 @@ export function AddInventoryModal({ visible, onClose, onSave }: AddInventoryModa
         </ScrollView>
         </SafeAreaView>
         </View>
-      </KeyboardAvoidingView>
     </Modal>
   );
 }

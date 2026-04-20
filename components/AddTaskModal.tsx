@@ -11,8 +11,6 @@ import {
   Pressable,
   TextInput,
   Modal,
-  Platform,
-  KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -143,12 +141,7 @@ export function AddTaskModal({ visible, onClose, properties, activePropertyId, e
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <KeyboardAvoidingView
-        style={styles.keyboardView}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={0}
-      >
-        <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
         <SafeAreaView style={styles.container} edges={['top']}>
           {/* Header */}
           <View style={[styles.header, { borderBottomColor: colors.border }]}>
@@ -336,7 +329,6 @@ export function AddTaskModal({ visible, onClose, properties, activePropertyId, e
           </ScrollView>
         </SafeAreaView>
         </View>
-      </KeyboardAvoidingView>
     </Modal>
   );
 }
