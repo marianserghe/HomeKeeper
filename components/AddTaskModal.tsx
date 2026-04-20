@@ -70,9 +70,21 @@ export function AddTaskModal({ visible, onClose, properties, activePropertyId, e
       setPriority(editingTask.priority);
       setDueDate(editingTask.dueDate);
       setSelectedPropertyId(editingTask.propertyId || activePropertyId);
+      
+      // Check for recurring - support both data structures
       if (editingTask.recurring) {
         setIsRecurring(true);
         setFrequency(editingTask.recurring.frequency);
+      } else if (editingTask.isRecurring && editingTask.recurringFrequency) {
+        setIsRecurring(true);
+        // Map template frequencies to form frequencies
+        const freqMap: Record<string, 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly'> = {
+          'monthly': 'monthly',
+          'quarterly': 'quarterly',
+          'semi-annual': 'quarterly', // Map semi-annual to quarterly
+          'annual': 'yearly',
+        };
+        setFrequency(freqMap[editingTask.recurringFrequency] || 'monthly');
       } else {
         setIsRecurring(false);
       }

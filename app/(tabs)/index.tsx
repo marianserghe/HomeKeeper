@@ -211,6 +211,9 @@ export default function HomeScreen() {
             <Text style={[styles.taskDue, { color: statusColor }]}>
               {formatDate(task.dueDate)}
             </Text>
+            {task.isRecurring && (
+              <Ionicons name="repeat" size={14} color={colors.textTertiary} style={styles.recurringIcon} />
+            )}
           </View>
         </Pressable>
       </Swipeable>
@@ -542,6 +545,9 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '500',
     marginLeft: 'auto',
+  },
+  recurringIcon: {
+    marginLeft: 6,
   },
   emptyState: {
     padding: 16,
