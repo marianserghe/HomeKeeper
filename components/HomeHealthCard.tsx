@@ -185,6 +185,7 @@ const styles = StyleSheet.create({
   },
   scoreContainer: {
     alignItems: 'center',
+    gap: 12,
   },
   scoreNumber: {
     fontSize: 128,
@@ -192,7 +193,6 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     letterSpacing: -2,
     lineHeight: 128,
-    marginTop: 4,
   },
   scoreLabel: {
     fontSize: 13,
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
   },
   textSection: {
     alignItems: 'center',
-    marginTop: 16,
+    marginTop: 12,
   },
   headline: {
     fontSize: 22,
