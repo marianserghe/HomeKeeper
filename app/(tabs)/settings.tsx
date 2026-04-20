@@ -9,6 +9,7 @@ import { autocompleteAddress, AddressSuggestion } from '../../lib/zestimate';
 import { AddPropertyModal } from '../../components/AddPropertyModal';
 import { HelpModal } from '../../components/HelpModal';
 import { PrivacyPolicyModal } from '../../components/PrivacyPolicyModal';
+import { TermsOfServiceModal } from '../../components/TermsOfServiceModal';
 import { requestNotificationPermissions, cancelAllNotifications, scheduleAllTaskReminders } from '../../lib/notifications';
 
 // App version from app.json
@@ -22,6 +23,7 @@ export default function SettingsScreen() {
   const [addPropertyModalVisible, setAddPropertyModalVisible] = useState(false);
   const [helpModalVisible, setHelpModalVisible] = useState(false);
   const [privacyModalVisible, setPrivacyModalVisible] = useState(false);
+  const [termsModalVisible, setTermsModalVisible] = useState(false);
   
   const [editingHome, setEditingHome] = useState(false);
   const [tempHomeInfo, setTempHomeInfo] = useState(homeInfo);
@@ -311,6 +313,14 @@ export default function SettingsScreen() {
             </Pressable>
             <Pressable 
               style={[styles.settingRow, { borderBottomColor: colors.border }]}
+              onPress={() => setTermsModalVisible(true)}
+            >
+              <Ionicons name="document-text-outline" size={20} color={colors.primary} style={styles.settingIcon} />
+              <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>Terms of Service</Text>
+              <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
+            </Pressable>
+            <Pressable 
+              style={[styles.settingRow, { borderBottomColor: colors.border }]}
               onPress={() => Alert.alert('Rate HomeKeeper', 'Thanks for using HomeKeeper!')}
             >
               <Ionicons name="star-outline" size={20} color={colors.primary} style={styles.settingIcon} />
@@ -364,6 +374,12 @@ export default function SettingsScreen() {
         <PrivacyPolicyModal
           visible={privacyModalVisible}
           onClose={() => setPrivacyModalVisible(false)}
+        />
+
+        {/* Terms of Service Modal */}
+        <TermsOfServiceModal
+          visible={termsModalVisible}
+          onClose={() => setTermsModalVisible(false)}
         />
       </KeyboardAvoidingView>
     </SafeAreaView>
