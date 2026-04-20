@@ -113,9 +113,18 @@ export default function TasksScreen() {
   });
 
   // Group tasks - use dynamic computation for overdue/upcoming
+  const laterTasks = tasks.filter(t => {
+    // Later = not completed, not in_progress, not overdue, not upcoming (beyond 7 days)
+    if (t.status === 'completed' || t.status === 'in_progress') return false;
+    if (overdueTasks.includes(t)) return false;
+    if (upcomingTasks.includes(t)) return false;
+    return true;
+  });
+
   const groupedTasks = {
     overdue: overdueTasks,
     upcoming: upcomingTasks,
+    later: laterTasks,
     inProgress: tasks.filter(t => t.status === 'in_progress'),
     completed: tasks.filter(t => t.status === 'completed'),
   };
@@ -361,6 +370,9 @@ export default function TasksScreen() {
           <>
             <TaskSection title="Overdue" tasks={groupedTasks.overdue} />
             <TaskSection title="Upcoming" tasks={groupedTasks.upcoming} />
+            {groupedTasks.later.length > 0 && (
+              <TaskSection title="Later" tasks={groupedTasks.later} />
+            )}
             {groupedTasks.inProgress.length > 0 && (
               <TaskSection title="In Progress" tasks={groupedTasks.inProgress} />
             )}
