@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
   },
   textSection: {
     alignItems: 'center',
-    marginTop: 12,
+    marginTop: 4,
   },
   headline: {
     fontSize: 22,
