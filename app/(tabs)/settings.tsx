@@ -293,11 +293,6 @@ export default function SettingsScreen() {
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>About</Text>
           <View style={[styles.sectionContent, { backgroundColor: colors.surface }]}>
-            <View style={[styles.settingRow, { borderBottomColor: colors.border }]}>
-              <Ionicons name="information-circle-outline" size={20} color={colors.primary} style={styles.settingIcon} />
-              <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>Version</Text>
-              <Text style={[styles.settingValue, { color: colors.textTertiary }]}>1.0.0</Text>
-            </View>
             <Pressable 
               style={[styles.settingRow, { borderBottomColor: colors.border }]}
               onPress={() => setHelpModalVisible(true)}
@@ -343,7 +338,6 @@ export default function SettingsScreen() {
 
         {/* Footer */}
         <Text style={[styles.footerText, { color: colors.textTertiary }]}>
-          HomeKeeper v1.0.0{'\n'}
           Made with ❤️ for homeowners
         </Text>
         </ScrollView>
