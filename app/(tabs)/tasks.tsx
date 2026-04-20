@@ -104,7 +104,13 @@ export default function TasksScreen() {
     if (filter === 'overdue') return overdueTasks.includes(task);
     if (filter === 'upcoming') return upcomingTasks.includes(task);
     return task.status === filter;
-  }).sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+  }).sort((a, b) => {
+    const [ay, am, ad] = a.dueDate.split('-').map(Number);
+    const [by, bm, bd] = b.dueDate.split('-').map(Number);
+    const dateA = new Date(ay, am - 1, ad);
+    const dateB = new Date(by, bm - 1, bd);
+    return dateA.getTime() - dateB.getTime();
+  });
 
   // Group tasks - use dynamic computation for overdue/upcoming
   const groupedTasks = {

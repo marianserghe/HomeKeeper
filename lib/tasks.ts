@@ -134,8 +134,14 @@ export function getPriorityColor(priority: TaskPriority, colors: any): string {
 }
 
 export function formatDate(dateString: string): string {
-  const date = new Date(dateString);
+  // Parse date as local time (not UTC) to avoid timezone shift
+  const parts = dateString.split('-');
+  if (parts.length !== 3) return dateString;
+  
+  const date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
   const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
   

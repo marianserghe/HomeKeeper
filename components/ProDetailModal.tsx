@@ -164,7 +164,10 @@ export function ProDetailModal({ visible, pro, onClose, onDelete, onEdit }: ProD
 
           {/* Added Date */}
           <Text style={[styles.addedDate, { color: colors.textTertiary }]}>
-            Added {new Date(pro.createdAt).toLocaleDateString()}
+            Added {(() => {
+              const [y, m, d] = pro.createdAt.split('T')[0].split('-');
+              return new Date(parseInt(y), parseInt(m) - 1, parseInt(d)).toLocaleDateString();
+            })()}
           </Text>
         </ScrollView>
       </View>

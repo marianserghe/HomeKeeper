@@ -113,14 +113,20 @@ export default function InventoryScreen() {
         <View style={styles.itemFooter}>
           {item.purchaseDate && (
             <Text style={[styles.itemDate, { color: colors.textTertiary }]}>
-              Purchased: {new Date(item.purchaseDate).toLocaleDateString()}
+              Purchased: {(() => {
+                const [y, m, d] = item.purchaseDate!.split('-');
+                return new Date(parseInt(y), parseInt(m) - 1, parseInt(d)).toLocaleDateString();
+              })()}
             </Text>
           )}
           {item.warrantyExpiry && (
             <View style={[styles.warrantyBadge, { backgroundColor: colors.info + '20' }]}>
               <Ionicons name="shield-checkmark" size={12} color={colors.info} />
               <Text style={[styles.warrantyText, { color: colors.info }]}>
-                Warranty until {new Date(item.warrantyExpiry).toLocaleDateString()}
+                Warranty until {(() => {
+                  const [y, m, d] = item.warrantyExpiry!.split('-');
+                  return new Date(parseInt(y), parseInt(m) - 1, parseInt(d)).toLocaleDateString();
+                })()}
               </Text>
             </View>
           )}

@@ -7,6 +7,8 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useApp } from '../../contexts/AppContext';
 import { autocompleteAddress, AddressSuggestion } from '../../lib/zestimate';
 import { AddPropertyModal } from '../../components/AddPropertyModal';
+import { HelpModal } from '../../components/HelpModal';
+import { PrivacyPolicyModal } from '../../components/PrivacyPolicyModal';
 import { requestNotificationPermissions, cancelAllNotifications, scheduleAllTaskReminders } from '../../lib/notifications';
 
 // App version from app.json
@@ -18,6 +20,8 @@ export default function SettingsScreen() {
   
   const [editingProperty, setEditingProperty] = useState<typeof properties[0] | null>(null);
   const [addPropertyModalVisible, setAddPropertyModalVisible] = useState(false);
+  const [helpModalVisible, setHelpModalVisible] = useState(false);
+  const [privacyModalVisible, setPrivacyModalVisible] = useState(false);
   
   const [editingHome, setEditingHome] = useState(false);
   const [tempHomeInfo, setTempHomeInfo] = useState(homeInfo);
@@ -299,6 +303,14 @@ export default function SettingsScreen() {
             </View>
             <Pressable 
               style={[styles.settingRow, { borderBottomColor: colors.border }]}
+              onPress={() => setHelpModalVisible(true)}
+            >
+              <Ionicons name="help-circle-outline" size={20} color={colors.primary} style={styles.settingIcon} />
+              <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>Help & Tips</Text>
+              <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
+            </Pressable>
+            <Pressable 
+              style={[styles.settingRow, { borderBottomColor: colors.border }]}
               onPress={() => Alert.alert('Rate HomeKeeper', 'Thanks for using HomeKeeper!')}
             >
               <Ionicons name="star-outline" size={20} color={colors.primary} style={styles.settingIcon} />
@@ -307,7 +319,7 @@ export default function SettingsScreen() {
             </Pressable>
             <Pressable 
               style={[styles.settingRow, { borderBottomWidth: 0 }]}
-              onPress={() => Alert.alert('Privacy', 'Your data stays on your device. We don\'t track or sell your information.')}
+              onPress={() => setPrivacyModalVisible(true)}
             >
               <Ionicons name="shield-checkmark-outline" size={20} color={colors.primary} style={styles.settingIcon} />
               <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>Privacy Policy</Text>
@@ -340,6 +352,18 @@ export default function SettingsScreen() {
             setEditingProperty(null);
           }}
           initialProperty={editingProperty}
+        />
+
+        {/* Help Modal */}
+        <HelpModal
+          visible={helpModalVisible}
+          onClose={() => setHelpModalVisible(false)}
+        />
+
+        {/* Privacy Policy Modal */}
+        <PrivacyPolicyModal
+          visible={privacyModalVisible}
+          onClose={() => setPrivacyModalVisible(false)}
         />
       </KeyboardAvoidingView>
     </SafeAreaView>

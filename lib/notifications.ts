@@ -60,7 +60,11 @@ export async function scheduleTaskReminder(
 ): Promise<string | null> {
   if (!task.dueDate) return null;
   
-  const dueDate = new Date(task.dueDate);
+  // Parse date as local time (not UTC) to avoid timezone shift
+  const parts = task.dueDate.split('-');
+  if (parts.length !== 3) return null;
+  const dueDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+  
   const reminderDate = new Date(dueDate);
   reminderDate.setDate(reminderDate.getDate() - daysBefore);
   reminderDate.setHours(9, 0, 0, 0); // 9 AM reminder
@@ -98,7 +102,10 @@ export async function scheduleTaskReminder(
 export async function scheduleOverdueNotification(task: Task): Promise<string | null> {
   if (!task.dueDate) return null;
   
-  const dueDate = new Date(task.dueDate);
+  // Parse date as local time (not UTC) to avoid timezone shift
+  const parts = task.dueDate.split('-');
+  if (parts.length !== 3) return null;
+  const dueDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
   dueDate.setHours(10, 0, 0, 0); // 10 AM on due date
   
   // Schedule for the due date
