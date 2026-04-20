@@ -4,6 +4,7 @@
 
 import { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Pressable, Animated } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../contexts/ThemeContext';
 
 interface HomeHealthCardProps {
@@ -28,7 +29,22 @@ export function HomeHealthCard({ score, overdueCount, onPress }: HomeHealthCardP
     return colors.error;
   };
 
+  // Get gradient colors based on score
+  const getGradientColors = (s: number): [string, string, string] => {
+    if (s >= 80) {
+      // Green gradient
+      return ['#4ADE80', '#22C55E', '#16A34A'];
+    }
+    if (s >= 60) {
+      // Amber gradient
+      return ['#FBBF24', '#F59E0B', '#D97706'];
+    }
+    // Red gradient
+    return ['#F87171', '#EF4444', '#DC2626'];
+  };
+
   const scoreColor = getScoreColor(score);
+  const gradientColors = getGradientColors(score);
 
   // Pulse animation for glow effect
   useEffect(() => {
@@ -150,9 +166,16 @@ export function HomeHealthCard({ score, overdueCount, onPress }: HomeHealthCardP
               <Animated.View 
                 style={[
                   styles.progressFill, 
-                  { backgroundColor: scoreColor, width: progressWidth }
-                ]} 
-              />
+                  { width: progressWidth }
+                ]}
+              >
+                <LinearGradient
+                  colors={gradientColors}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={StyleSheet.absoluteFill}
+                />
+              </Animated.View>
             </View>
             <View style={styles.progressLabels}>
               <Text style={[styles.progressLabel, { color: colors.textTertiary }]}>0</Text>
@@ -225,6 +248,7 @@ const styles = StyleSheet.create({
   progressFill: {
     height: '100%',
     borderRadius: 4,
+    overflow: 'hidden',
   },
   progressLabels: {
     flexDirection: 'row',
