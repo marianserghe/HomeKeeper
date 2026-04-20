@@ -10,6 +10,7 @@ import { AddPropertyModal } from '../../components/AddPropertyModal';
 import { HelpModal } from '../../components/HelpModal';
 import { PrivacyPolicyModal } from '../../components/PrivacyPolicyModal';
 import { TermsOfServiceModal } from '../../components/TermsOfServiceModal';
+import { ContactSupportModal } from '../../components/ContactSupportModal';
 import { requestNotificationPermissions, cancelAllNotifications, scheduleAllTaskReminders } from '../../lib/notifications';
 
 // App version from app.json
@@ -24,6 +25,7 @@ export default function SettingsScreen() {
   const [helpModalVisible, setHelpModalVisible] = useState(false);
   const [privacyModalVisible, setPrivacyModalVisible] = useState(false);
   const [termsModalVisible, setTermsModalVisible] = useState(false);
+  const [contactModalVisible, setContactModalVisible] = useState(false);
   
   const [editingHome, setEditingHome] = useState(false);
   const [tempHomeInfo, setTempHomeInfo] = useState(homeInfo);
@@ -313,6 +315,14 @@ export default function SettingsScreen() {
             </Pressable>
             <Pressable 
               style={[styles.settingRow, { borderBottomColor: colors.border }]}
+              onPress={() => setContactModalVisible(true)}
+            >
+              <Ionicons name="chatbubble-outline" size={20} color={colors.primary} style={styles.settingIcon} />
+              <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>Contact Support</Text>
+              <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
+            </Pressable>
+            <Pressable 
+              style={[styles.settingRow, { borderBottomColor: colors.border }]}
               onPress={() => setTermsModalVisible(true)}
             >
               <Ionicons name="document-text-outline" size={20} color={colors.primary} style={styles.settingIcon} />
@@ -380,6 +390,12 @@ export default function SettingsScreen() {
         <TermsOfServiceModal
           visible={termsModalVisible}
           onClose={() => setTermsModalVisible(false)}
+        />
+
+        {/* Contact Support Modal */}
+        <ContactSupportModal
+          visible={contactModalVisible}
+          onClose={() => setContactModalVisible(false)}
         />
       </KeyboardAvoidingView>
     </SafeAreaView>
