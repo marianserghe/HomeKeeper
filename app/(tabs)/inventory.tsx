@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Alert, Image } from 'react-native';
+import { Swipeable } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -32,6 +33,7 @@ export default function InventoryScreen() {
   const { colors } = useTheme();
   const { inventory, addInventoryItem, updateInventoryItem, deleteInventoryItem } = useInventory();
   const [modalVisible, setModalVisible] = useState(false);
+  const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<InventoryCategory | 'all'>('all');
   const scrollViewRef = useRef<ScrollView>(null);
 
@@ -76,11 +78,31 @@ export default function InventoryScreen() {
     }).format(amount);
   };
 
-  const InventoryItemCard = ({ item }: { item: InventoryItem }) => (
-    <Pressable
-      style={[styles.itemCard, { backgroundColor: colors.surface }]}
-      onLongPress={() => handleDelete(item.id, item.name)}
-    >
+  const InventoryItemCard = ({ item }: { item: InventoryItem }) => {
+    const renderRightActions = () => (
+      <View style={styles.swipeAction}>
+        <Pressable
+          style={[styles.deleteButton, { backgroundColor: colors.error }]}
+          onPress={() => handleDelete(item.id, item.name)}
+        >
+          <Ionicons name="trash" size={24} color={colors.white} />
+        </Pressable>
+      </View>
+    );
+
+    return (
+      <Swipeable
+        renderRightActions={renderRightActions}
+        overshootRight={false}
+        friction={2}
+      >
+        <Pressable
+          style={[styles.itemCard, { backgroundColor: colors.surface }]}
+          onPress={() => {
+            setEditingItem(item);
+            setModalVisible(true);
+          }}
+        >
       <View style={styles.itemHeader}>
         <View style={[styles.itemIcon, { backgroundColor: colors.primary + '20' }]}>
           <Ionicons
@@ -152,7 +174,9 @@ export default function InventoryScreen() {
         </View>
       )}
     </Pressable>
-  );
+      </Swipeable>
+    );
+  };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
@@ -267,11 +291,23 @@ export default function InventoryScreen() {
         <Ionicons name="add" size={28} color={colors.white} />
       </Pressable>
 
-      {/* Add Modal */}
+      {/* Add/Edit Modal */}
       <AddInventoryModal
         visible={modalVisible}
-        onClose={() => setModalVisible(false)}
-        onSave={(itemData) => addInventoryItem(itemData)}
+        onClose={() => {
+          setModalVisible(false);
+          setEditingItem(null);
+        }}
+        onSave={(itemData) => {
+          if (editingItem) {
+            updateInventoryItem(editingItem.id, itemData);
+          } else {
+            addInventoryItem(itemData);
+          }
+          setModalVisible(false);
+          setEditingItem(null);
+        }}
+        editingItem={editingItem}
       />
     </SafeAreaView>
   );
@@ -442,5 +478,18 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,
+  },
+  swipeAction: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 80,
+    height: '100%',
+  },
+  deleteButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

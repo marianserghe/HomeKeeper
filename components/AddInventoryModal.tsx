@@ -2,7 +2,7 @@
 // HOMEKEEPER - Add Inventory Modal
 // ============================================
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -34,6 +34,17 @@ interface AddInventoryModalProps {
     notes?: string;
     photos?: string[];
   }) => void;
+  editingItem?: {
+    id: string;
+    name: string;
+    category: InventoryCategory;
+    location?: string;
+    purchaseDate?: string;
+    purchasePrice?: number;
+    warrantyExpiry?: string;
+    notes?: string;
+    photos?: string[];
+  } | null;
 }
 
 const INVENTORY_CATEGORIES: { key: InventoryCategory; label: string; icon: string }[] = [
@@ -46,7 +57,7 @@ const INVENTORY_CATEGORIES: { key: InventoryCategory; label: string; icon: strin
   { key: 'other', label: 'Other', icon: 'ellipsis-horizontal' },
 ];
 
-export function AddInventoryModal({ visible, onClose, onSave }: AddInventoryModalProps) {
+export function AddInventoryModal({ visible, onClose, onSave, editingItem }: AddInventoryModalProps) {
   const { colors } = useTheme();
   
   const [name, setName] = useState('');
@@ -57,6 +68,30 @@ export function AddInventoryModal({ visible, onClose, onSave }: AddInventoryModa
   const [warrantyExpiry, setWarrantyExpiry] = useState('');
   const [notes, setNotes] = useState('');
   const [photos, setPhotos] = useState<string[]>([]);
+  
+  // Populate form when editing
+  useEffect(() => {
+    if (editingItem) {
+      setName(editingItem.name);
+      setCategory(editingItem.category);
+      setLocation(editingItem.location || '');
+      setPurchaseDate(editingItem.purchaseDate || '');
+      setPurchasePrice(editingItem.purchasePrice ? String(editingItem.purchasePrice) : '');
+      setWarrantyExpiry(editingItem.warrantyExpiry || '');
+      setNotes(editingItem.notes || '');
+      setPhotos(editingItem.photos || []);
+    } else {
+      // Reset for new item
+      setName('');
+      setCategory('appliances');
+      setLocation('');
+      setPurchaseDate('');
+      setPurchasePrice('');
+      setWarrantyExpiry('');
+      setNotes('');
+      setPhotos([]);
+    }
+  }, [editingItem]);
   
   // Take photo with camera
   const takePhoto = async () => {
@@ -146,7 +181,7 @@ export function AddInventoryModal({ visible, onClose, onSave }: AddInventoryModa
           <Pressable onPress={onClose} style={styles.headerButton}>
             <Ionicons name="close" size={24} color={colors.textSecondary} />
           </Pressable>
-          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Add Item</Text>
+          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{editingItem ? 'Edit Item' : 'Add Item'}</Text>
           <Pressable 
             onPress={handleSave}
             style={[styles.headerButton, styles.saveButton, { backgroundColor: colors.primary }]}
