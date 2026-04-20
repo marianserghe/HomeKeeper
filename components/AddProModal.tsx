@@ -18,18 +18,32 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 
+export interface ProFormData {
+  name: string;
+  category: string;
+  phone?: string;
+  email?: string;
+  company?: string;
+  notes?: string;
+}
+
+export interface SavedPro {
+  id: string;
+  name: string;
+  category: string;
+  phone?: string;
+  email?: string;
+  company?: string;
+  notes?: string;
+  createdAt: string;
+}
+
 interface AddProModalProps {
   visible: boolean;
   onClose: () => void;
-  onSave: (pro: {
-    name: string;
-    category: string;
-    phone?: string;
-    email?: string;
-    company?: string;
-    notes?: string;
-  }) => void;
+  onSave: (pro: ProFormData) => void;
   initialCategory?: string;
+  editingPro?: SavedPro | null;
 }
 
 const PRO_CATEGORIES = [
@@ -45,9 +59,9 @@ const PRO_CATEGORIES = [
   { key: 'other', label: 'Other', icon: 'ellipsis-horizontal' as const },
 ];
 
-export function AddProModal({ visible, onClose, onSave, initialCategory }: AddProModalProps) {
+export function AddProModal({ visible, onClose, onSave, initialCategory, editingPro }: AddProModalProps) {
   const { colors } = useTheme();
-  
+
   // Form state
   const [name, setName] = useState('');
   const [category, setCategory] = useState(initialCategory || 'handyman');
@@ -55,17 +69,37 @@ export function AddProModal({ visible, onClose, onSave, initialCategory }: AddPr
   const [email, setEmail] = useState('');
   const [company, setCompany] = useState('');
   const [notes, setNotes] = useState('');
-  
+
   // Sync category when initialCategory changes
   useEffect(() => {
     if (initialCategory) {
       setCategory(initialCategory);
     }
   }, [initialCategory]);
-  
+
+  // Populate form when editing
+  useEffect(() => {
+    if (editingPro) {
+      setName(editingPro.name);
+      setCategory(editingPro.category);
+      setPhone(editingPro.phone || '');
+      setEmail(editingPro.email || '');
+      setCompany(editingPro.company || '');
+      setNotes(editingPro.notes || '');
+    } else {
+      // Reset form for new pro
+      setName('');
+      setCategory(initialCategory || 'handyman');
+      setPhone('');
+      setEmail('');
+      setCompany('');
+      setNotes('');
+    }
+  }, [editingPro, initialCategory]);
+
   const handleSave = () => {
     if (!name.trim()) return;
-    
+
     onSave({
       name: name.trim(),
       category,
@@ -74,7 +108,7 @@ export function AddProModal({ visible, onClose, onSave, initialCategory }: AddPr
       company: company.trim() || undefined,
       notes: notes.trim() || undefined,
     });
-    
+
     // Reset form
     setName('');
     setCategory('handyman');
@@ -82,7 +116,7 @@ export function AddProModal({ visible, onClose, onSave, initialCategory }: AddPr
     setEmail('');
     setCompany('');
     setNotes('');
-    
+
     onClose();
   };
 
@@ -99,8 +133,8 @@ export function AddProModal({ visible, onClose, onSave, initialCategory }: AddPr
           <Pressable onPress={onClose} style={styles.headerButton}>
             <Ionicons name="close" size={24} color={colors.textSecondary} />
           </Pressable>
-          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Add Pro</Text>
-          <Pressable 
+          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{editingPro ? 'Edit Pro' : 'Add Pro'}</Text>
+          <Pressable
             onPress={handleSave}
             style={[styles.headerButton, styles.saveButton, { backgroundColor: colors.primary }]}
             disabled={!name.trim()}
@@ -109,11 +143,12 @@ export function AddProModal({ visible, onClose, onSave, initialCategory }: AddPr
           </Pressable>
         </View>
 
-        <KeyboardAvoidingView 
+        <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.keyboardView}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
         >
-          <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
+          <ScrollView style={styles.scrollView} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
             {/* Name */}
             <View style={styles.field}>
               <Text style={[styles.label, { color: colors.textSecondary }]}>Name *</Text>
@@ -180,10 +215,25 @@ export function AddProModal({ visible, onClose, onSave, initialCategory }: AddPr
               <TextInput
                 style={[styles.input, { backgroundColor: colors.surface, color: colors.textPrimary, borderColor: colors.border }]}
                 value={phone}
-                onChangeText={setPhone}
+                onChangeText={(text) => {
+                  // Format phone as user types: (555) 123-4567
+                  const digits = text.replace(/\D/g, '');
+                  let formatted = digits;
+                  if (digits.length > 0) {
+                    formatted = '(' + digits.substring(0, 3);
+                  }
+                  if (digits.length > 3) {
+                    formatted += ') ' + digits.substring(3, 6);
+                  }
+                  if (digits.length > 6) {
+                    formatted += '-' + digits.substring(6, 10);
+                  }
+                  setPhone(formatted);
+                }}
                 placeholder="(555) 123-4567"
                 placeholderTextColor={colors.textTertiary}
                 keyboardType="phone-pad"
+                maxLength={14}
               />
             </View>
 

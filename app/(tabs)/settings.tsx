@@ -1,16 +1,65 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Alert, Switch, KeyboardAvoidingView, Platform } from 'react-native';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Alert, Switch, KeyboardAvoidingView, Platform, FlatList, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useApp } from '../../contexts/AppContext';
+import { autocompleteAddress, AddressSuggestion } from '../../lib/zestimate';
+import { AddPropertyModal } from '../../components/AddPropertyModal';
+
+// App version from app.json
+const APP_VERSION = '1.0.0';
 
 export default function SettingsScreen() {
   const { colors, theme, setTheme } = useTheme();
-  const { homeInfo, updateHomeInfo, settings, updateSettings, tasks, pros, inventory, healthScore, clearAllData, properties, activePropertyId, reorderProperties, setActiveProperty, deleteProperty } = useApp();
+  const { homeInfo, updateHomeInfo, settings, updateSettings, tasks, pros, inventory, healthScore, clearAllData, properties, activePropertyId, reorderProperties, setActiveProperty, deleteProperty, addProperty, updateProperty } = useApp();
+  
+  const [editingProperty, setEditingProperty] = useState<typeof properties[0] | null>(null);
+  const [addPropertyModalVisible, setAddPropertyModalVisible] = useState(false);
   
   const [editingHome, setEditingHome] = useState(false);
   const [tempHomeInfo, setTempHomeInfo] = useState(homeInfo);
+  const [addressSuggestions, setAddressSuggestions] = useState<AddressSuggestion[]>([]);
+  const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  // Reset scroll position when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+    }, [])
+  );
+
+  // Address autocomplete effect
+  useEffect(() => {
+    if (!tempHomeInfo.address || tempHomeInfo.address.length < 3) {
+      setAddressSuggestions([]);
+      return;
+    }
+
+    const timeout = setTimeout(async () => {
+      if (tempHomeInfo.address) {
+        const suggestions = await autocompleteAddress(tempHomeInfo.address);
+        setAddressSuggestions(suggestions);
+      }
+    }, 300);
+
+    return () => clearTimeout(timeout);
+  }, [tempHomeInfo.address]);
+
+  const handleSelectAddress = (suggestion: AddressSuggestion) => {
+    // Parse the address into components
+    setTempHomeInfo({
+      ...tempHomeInfo,
+      address: suggestion.street || suggestion.label,
+      city: suggestion.city || '',
+      state: suggestion.state || '',
+      zip: suggestion.postalCode || '',
+    });
+    setAddressSuggestions([]);
+    setShowAddressSuggestions(false);
+  };
 
   const handleSaveHomeInfo = () => {
     updateHomeInfo(tempHomeInfo);
@@ -49,230 +98,29 @@ export default function SettingsScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <KeyboardAvoidingView
-        style={{ flex: 1 }}
+        style={[styles.keyboardView, { backgroundColor: colors.background }]}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
       >
-        <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
+        <ScrollView ref={scrollViewRef} style={styles.scrollView} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {/* Header */}
         <Text style={[styles.title, { color: colors.textPrimary }]}>Settings</Text>
 
-        {/* Home Info Card */}
-        <View style={[styles.card, { backgroundColor: colors.surface }]}>
-          <View style={styles.cardHeader}>
-            <Ionicons name="home" size={24} color={colors.primary} />
-            <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>{homeInfo.name || 'Your Home'}</Text>
-          </View>
-          
-          {editingHome ? (
-            <View style={styles.editForm}>
-              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Property Name (Optional)</Text>
-              <TextInput
-                style={[styles.input, { backgroundColor: colors.background, color: colors.textPrimary, borderColor: colors.border }]}
-                value={tempHomeInfo.name || ''}
-                onChangeText={(text) => setTempHomeInfo({ ...tempHomeInfo, name: text })}
-                placeholder="e.g., Main Home, Beach House"
-                placeholderTextColor={colors.textTertiary}
-              />
-              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Street Address</Text>
-              <TextInput
-                style={[styles.input, { backgroundColor: colors.background, color: colors.textPrimary, borderColor: colors.border }]}
-                value={tempHomeInfo.address || ''}
-                onChangeText={(text) => setTempHomeInfo({ ...tempHomeInfo, address: text })}
-                placeholder="123 Main St"
-                placeholderTextColor={colors.textTertiary}
-              />
-              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>City</Text>
-              <TextInput
-                style={[styles.input, { backgroundColor: colors.background, color: colors.textPrimary, borderColor: colors.border }]}
-                value={tempHomeInfo.city || ''}
-                onChangeText={(text) => setTempHomeInfo({ ...tempHomeInfo, city: text })}
-                placeholder="Waldwick"
-                placeholderTextColor={colors.textTertiary}
-              />
-              <View style={styles.rowInputs}>
-                <View style={styles.halfInput}>
-                  <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>State</Text>
-                  <TextInput
-                    style={[styles.input, { backgroundColor: colors.background, color: colors.textPrimary, borderColor: colors.border }]}
-                    value={tempHomeInfo.state || ''}
-                    onChangeText={(text) => setTempHomeInfo({ ...tempHomeInfo, state: text.toUpperCase() })}
-                    placeholder="NJ"
-                    placeholderTextColor={colors.textTertiary}
-                    maxLength={2}
-                    autoCapitalize="characters"
-                  />
-                </View>
-                <View style={styles.halfInput}>
-                  <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>ZIP</Text>
-                  <TextInput
-                    style={[styles.input, { backgroundColor: colors.background, color: colors.textPrimary, borderColor: colors.border }]}
-                    value={tempHomeInfo.zip || ''}
-                    onChangeText={(text) => setTempHomeInfo({ ...tempHomeInfo, zip: text })}
-                    placeholder="07463"
-                    placeholderTextColor={colors.textTertiary}
-                    keyboardType="number-pad"
-                    maxLength={5}
-                  />
-                </View>
-              </View>
-              <View style={styles.rowInputs}>
-                <View style={styles.halfInput}>
-                  <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Sq Ft</Text>
-                  <TextInput
-                    style={[styles.input, { backgroundColor: colors.background, color: colors.textPrimary, borderColor: colors.border }]}
-                    value={tempHomeInfo.squareFeet?.toString() || ''}
-                    onChangeText={(text) => setTempHomeInfo({ ...tempHomeInfo, squareFeet: text ? parseInt(text) : undefined })}
-                    placeholder="2000"
-                    placeholderTextColor={colors.textTertiary}
-                    keyboardType="number-pad"
-                  />
-                </View>
-                <View style={styles.halfInput}>
-                  <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Year Built</Text>
-                  <TextInput
-                    style={[styles.input, { backgroundColor: colors.background, color: colors.textPrimary, borderColor: colors.border }]}
-                    value={tempHomeInfo.yearBuilt?.toString() || ''}
-                    onChangeText={(text) => setTempHomeInfo({ ...tempHomeInfo, yearBuilt: text ? parseInt(text) : undefined })}
-                    placeholder="1990"
-                    placeholderTextColor={colors.textTertiary}
-                    keyboardType="number-pad"
-                  />
-                </View>
-              </View>
-              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Purchase Price</Text>
-              <TextInput
-                style={[styles.input, { backgroundColor: colors.background, color: colors.textPrimary, borderColor: colors.border }]}
-                value={tempHomeInfo.purchasePrice?.toString() || ''}
-                onChangeText={(text) => setTempHomeInfo({ ...tempHomeInfo, purchasePrice: text ? parseInt(text) : undefined })}
-                placeholder="500000"
-                placeholderTextColor={colors.textTertiary}
-                keyboardType="number-pad"
-              />
-              <View style={styles.rowInputs}>
-                <View style={styles.halfInput}>
-                  <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Bedrooms</Text>
-                  <TextInput
-                    style={[styles.input, { backgroundColor: colors.background, color: colors.textPrimary, borderColor: colors.border }]}
-                    value={tempHomeInfo.bedrooms?.toString() || ''}
-                    onChangeText={(text) => setTempHomeInfo({ ...tempHomeInfo, bedrooms: text ? parseInt(text) : undefined })}
-                    placeholder="4"
-                    placeholderTextColor={colors.textTertiary}
-                    keyboardType="number-pad"
-                  />
-                </View>
-                <View style={styles.halfInput}>
-                  <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Bathrooms</Text>
-                  <TextInput
-                    style={[styles.input, { backgroundColor: colors.background, color: colors.textPrimary, borderColor: colors.border }]}
-                    value={tempHomeInfo.bathrooms?.toString() || ''}
-                    onChangeText={(text) => setTempHomeInfo({ ...tempHomeInfo, bathrooms: text ? parseInt(text) : undefined })}
-                    placeholder="2"
-                    placeholderTextColor={colors.textTertiary}
-                    keyboardType="number-pad"
-                  />
-                </View>
-              </View>
-              <View style={styles.editButtons}>
-                <Pressable
-                  style={[styles.cancelButton, { borderColor: colors.border }]}
-                  onPress={() => {
-                    setTempHomeInfo(homeInfo);
-                    setEditingHome(false);
-                  }}
-                >
-                  <Text style={[styles.cancelButtonText, { color: colors.textSecondary }]}>Cancel</Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.saveButton, { backgroundColor: colors.primary }]}
-                  onPress={handleSaveHomeInfo}
-                >
-                  <Text style={[styles.saveButtonText, { color: colors.white }]}>Save</Text>
-                </Pressable>
-              </View>
-            </View>
-          ) : (
-            <Pressable style={styles.homeInfoDisplay} onPress={() => {
-              setTempHomeInfo(homeInfo);
-              setEditingHome(true);
-            }}>
-              {/* Address Section */}
-              <View style={styles.addressSection}>
-                <View style={styles.addressRow}>
-                  <Ionicons name="location" size={18} color={colors.primary} />
-                  <View style={styles.addressText}>
-                    <Text style={[styles.addressLine1, { color: colors.textPrimary }]}>
-                      {homeInfo.address || 'Add address'}
-                    </Text>
-                    <Text style={[styles.addressLine2, { color: colors.textSecondary }]}>
-                      {[homeInfo.city, homeInfo.state, homeInfo.zip].filter(Boolean).join(', ') || 'Add location'}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-
-              {/* Stats Grid */}
-              <View style={styles.statsGrid}>
-                {homeInfo.squareFeet && (
-                  <View style={[styles.statCard, { backgroundColor: colors.background }]}>
-                    <Ionicons name="resize" size={20} color={colors.textSecondary} />
-                    <Text style={[styles.cardStatValue, { color: colors.textPrimary }]}>
-                      {homeInfo.squareFeet.toLocaleString()}
-                    </Text>
-                    <Text style={[styles.cardStatLabel, { color: colors.textTertiary }]}>sq ft</Text>
-                  </View>
-                )}
-                {homeInfo.yearBuilt && (
-                  <View style={[styles.statCard, { backgroundColor: colors.background }]}>
-                    <Ionicons name="calendar" size={20} color={colors.textSecondary} />
-                    <Text style={[styles.cardStatValue, { color: colors.textPrimary }]}>
-                      {homeInfo.yearBuilt}
-                    </Text>
-                    <Text style={[styles.cardStatLabel, { color: colors.textTertiary }]}>year built</Text>
-                  </View>
-                )}
-                {homeInfo.purchasePrice && (
-                  <View style={[styles.statCard, { backgroundColor: colors.background }]}>
-                    <Ionicons name="wallet" size={20} color={colors.textSecondary} />
-                    <Text style={[styles.cardStatValue, { color: colors.textPrimary }]}>
-                      ${(homeInfo.purchasePrice / 1000).toFixed(0)}K
-                    </Text>
-                    <Text style={[styles.cardStatLabel, { color: colors.textTertiary }]}>purchase</Text>
-                  </View>
-                )}
-                {(homeInfo.bedrooms || homeInfo.bathrooms) && (
-                  <View style={[styles.statCard, styles.bedsBathsCard, { backgroundColor: colors.background }]}>
-                    {homeInfo.bedrooms && (
-                      <View style={styles.bedsBathsItem}>
-                        <Ionicons name="bed" size={20} color={colors.textSecondary} />
-                        <Text style={[styles.cardStatValue, { color: colors.textPrimary }]}>{homeInfo.bedrooms}</Text>
-                        <Text style={[styles.cardStatLabel, { color: colors.textTertiary }]}>beds</Text>
-                      </View>
-                    )}
-                    {homeInfo.bedrooms && homeInfo.bathrooms && (
-                      <View style={[styles.bedsBathsDivider, { backgroundColor: colors.border }]} />
-                    )}
-                    {homeInfo.bathrooms && (
-                      <View style={styles.bedsBathsItem}>
-                        <Ionicons name="water" size={20} color={colors.textSecondary} />
-                        <Text style={[styles.cardStatValue, { color: colors.textPrimary }]}>{homeInfo.bathrooms}</Text>
-                        <Text style={[styles.cardStatLabel, { color: colors.textTertiary }]}>baths</Text>
-                      </View>
-                    )}
-                  </View>
-                )}
-              </View>
-
-              <View style={styles.tapToEditWrap}>
-                <Text style={[styles.tapToEdit, { color: colors.primary }]}>Tap to edit</Text>
-              </View>
-            </Pressable>
-          )}
+        {/* App Logo */}
+        <View style={styles.logoContainer}>
+          <Image 
+            source={require('../../assets/logo.jpg')} 
+            style={styles.logo}
+            resizeMode="contain"
+          />
+          <Text style={[styles.appName, { color: colors.textPrimary }]}>HomeKeeper</Text>
+          <Text style={[styles.appVersion, { color: colors.textTertiary }]}>Version {APP_VERSION}</Text>
         </View>
 
         {/* Properties */}
-        {properties.length > 1 && (
+        {properties.length >= 1 && (
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Properties</Text>
             <View style={[styles.sectionContent, { backgroundColor: colors.surface }]}>
@@ -303,7 +151,14 @@ export default function SettingsScreen() {
                     </Pressable>
                   </View>
 
-                  <View style={styles.propertyInfo}>
+                  {/* Tap to edit property */}
+                  <Pressable 
+                    style={styles.propertyInfo}
+                    onPress={() => {
+                      setEditingProperty(property);
+                      setAddPropertyModalVisible(true);
+                    }}
+                  >
                     <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>
                       {property.name || 'Property'}
                     </Text>
@@ -312,7 +167,7 @@ export default function SettingsScreen() {
                         {property.address}
                       </Text>
                     )}
-                  </View>
+                  </Pressable>
 
                   {property.id === activePropertyId ? (
                     <View style={[styles.activeBadge, { backgroundColor: colors.primary + '20' }]}>
@@ -446,6 +301,25 @@ export default function SettingsScreen() {
           Made with ❤️ for homeowners
         </Text>
         </ScrollView>
+
+        {/* Add/Edit Property Modal */}
+        <AddPropertyModal
+          visible={addPropertyModalVisible}
+          onClose={() => {
+            setAddPropertyModalVisible(false);
+            setEditingProperty(null);
+          }}
+          onSave={(propertyData) => {
+            if (editingProperty?.id) {
+              updateProperty(editingProperty.id, propertyData);
+            } else {
+              addProperty(propertyData);
+            }
+            setAddPropertyModalVisible(false);
+            setEditingProperty(null);
+          }}
+          initialProperty={editingProperty}
+        />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -454,6 +328,34 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  addressInputContainer: {
+    position: 'relative',
+  },
+  suggestionsContainer: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    borderWidth: 1,
+    borderRadius: 8,
+    maxHeight: 200,
+    zIndex: 1000,
+    elevation: 5,
+  },
+  suggestionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 12,
+    borderBottomWidth: 1,
+  },
+  suggestionText: {
+    flex: 1,
+    fontSize: 14,
   },
   scrollView: {
     flex: 1,
@@ -727,6 +629,25 @@ const styles = StyleSheet.create({
   },
   settingValue: {
     fontSize: 14,
+  },
+  logoContainer: {
+    alignItems: 'center',
+    paddingVertical: 24,
+    marginBottom: 16,
+  },
+  logo: {
+    width: 120,
+    height: 120,
+    borderRadius: 24,
+  },
+  appName: {
+    fontSize: 24,
+    fontWeight: '700',
+    marginTop: 12,
+  },
+  appVersion: {
+    fontSize: 14,
+    marginTop: 4,
   },
   footerText: {
     textAlign: 'center',

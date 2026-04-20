@@ -13,11 +13,15 @@ import {
   Modal,
   Platform,
   KeyboardAvoidingView,
+  Image,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../contexts/ThemeContext';
 import { InventoryCategory } from '../contexts/AppContext';
+import { DatePickerField } from './DatePickerField';
 
 interface AddInventoryModalProps {
   visible: boolean;
@@ -30,6 +34,7 @@ interface AddInventoryModalProps {
     purchasePrice?: number;
     warrantyExpiry?: string;
     notes?: string;
+    photos?: string[];
   }) => void;
 }
 
@@ -53,6 +58,54 @@ export function AddInventoryModal({ visible, onClose, onSave }: AddInventoryModa
   const [purchasePrice, setPurchasePrice] = useState('');
   const [warrantyExpiry, setWarrantyExpiry] = useState('');
   const [notes, setNotes] = useState('');
+  const [photos, setPhotos] = useState<string[]>([]);
+  
+  // Take photo with camera
+  const takePhoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Denied', 'Camera permission is required to take photos.');
+      return;
+    }
+    
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.6, // 60% quality for smaller size
+    });
+    
+    if (!result.canceled && result.assets[0]) {
+      setPhotos([...photos, result.assets[0].uri]);
+    }
+  };
+  
+  // Pick from gallery
+  const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Denied', 'Photo library permission is required.');
+      return;
+    }
+    
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.6, // 60% quality for smaller size
+      selectionLimit: 3 - photos.length, // Max 3 photos
+    });
+    
+    if (!result.canceled) {
+      const newUris = result.assets.map(asset => asset.uri);
+      setPhotos([...photos, ...newUris].slice(0, 3));
+    }
+  };
+  
+  // Remove photo
+  const removePhoto = (index: number) => {
+    setPhotos(photos.filter((_, i) => i !== index));
+  };
   
   const handleSave = () => {
     if (!name.trim()) return;
@@ -65,6 +118,7 @@ export function AddInventoryModal({ visible, onClose, onSave }: AddInventoryModa
       purchasePrice: purchasePrice ? parseFloat(purchasePrice) : undefined,
       warrantyExpiry: warrantyExpiry.trim() || undefined,
       notes: notes.trim() || undefined,
+      photos: photos.length > 0 ? photos : undefined,
     });
     
     // Reset
@@ -75,6 +129,7 @@ export function AddInventoryModal({ visible, onClose, onSave }: AddInventoryModa
     setPurchasePrice('');
     setWarrantyExpiry('');
     setNotes('');
+    setPhotos([]);
     
     onClose();
   };
@@ -87,8 +142,9 @@ export function AddInventoryModal({ visible, onClose, onSave }: AddInventoryModa
       onRequestClose={onClose}
     >
       <KeyboardAvoidingView
-        style={{ flex: 1 }}
+        style={[styles.keyboardView, { backgroundColor: colors.background }]}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
       >
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         {/* Header */}
@@ -165,16 +221,12 @@ export function AddInventoryModal({ visible, onClose, onSave }: AddInventoryModa
           </View>
 
           {/* Purchase Date */}
-          <View style={styles.field}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Purchase Date</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: colors.surface, color: colors.textPrimary, borderColor: colors.border }]}
-              value={purchaseDate}
-              onChangeText={setPurchaseDate}
-              placeholder="YYYY-MM-DD"
-              placeholderTextColor={colors.textTertiary}
-            />
-          </View>
+          <DatePickerField
+            label="Purchase Date"
+            value={purchaseDate}
+            onChange={setPurchaseDate}
+            placeholder="Select purchase date"
+          />
 
           {/* Purchase Price */}
           <View style={styles.field}>
@@ -190,16 +242,12 @@ export function AddInventoryModal({ visible, onClose, onSave }: AddInventoryModa
           </View>
 
           {/* Warranty Expiry */}
-          <View style={styles.field}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Warranty Expires</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: colors.surface, color: colors.textPrimary, borderColor: colors.border }]}
-              value={warrantyExpiry}
-              onChangeText={setWarrantyExpiry}
-              placeholder="YYYY-MM-DD"
-              placeholderTextColor={colors.textTertiary}
-            />
-          </View>
+          <DatePickerField
+            label="Warranty Expires"
+            value={warrantyExpiry}
+            onChange={setWarrantyExpiry}
+            placeholder="Select warranty expiry"
+          />
 
           {/* Notes */}
           <View style={styles.field}>
@@ -214,6 +262,40 @@ export function AddInventoryModal({ visible, onClose, onSave }: AddInventoryModa
               numberOfLines={3}
             />
           </View>
+
+          {/* Photos */}
+          <View style={styles.field}>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Photos ({photos.length}/3)</Text>
+            <View style={styles.photoRow}>
+              {photos.map((uri, index) => (
+                <View key={index} style={[styles.photoContainer, { borderColor: colors.border }]}>
+                  <Image source={{ uri }} style={styles.photoThumbnail} />
+                  <Pressable 
+                    style={[styles.removePhotoBtn, { backgroundColor: colors.error }]}
+                    onPress={() => removePhoto(index)}
+                  >
+                    <Ionicons name="close" size={14} color={colors.white} />
+                  </Pressable>
+                </View>
+              ))}
+              {photos.length < 3 && (
+                <Pressable 
+                  style={[styles.addPhotoBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                  onPress={takePhoto}
+                >
+                  <Ionicons name="camera" size={24} color={colors.textTertiary} />
+                </Pressable>
+              )}
+              {photos.length < 3 && (
+                <Pressable 
+                  style={[styles.addPhotoBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                  onPress={pickImage}
+                >
+                  <Ionicons name="images" size={24} color={colors.textTertiary} />
+                </Pressable>
+              )}
+            </View>
+          </View>
         </ScrollView>
       </SafeAreaView>
       </KeyboardAvoidingView>
@@ -223,6 +305,9 @@ export function AddInventoryModal({ visible, onClose, onSave }: AddInventoryModa
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+  },
+  keyboardView: {
     flex: 1,
   },
   header: {
@@ -291,5 +376,41 @@ const styles = StyleSheet.create({
   },
   categoryText: {
     fontSize: 14,
+  },
+  photoRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  photoContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 10,
+    borderWidth: 1,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  photoThumbnail: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  removePhotoBtn: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addPhotoBtn: {
+    width: 80,
+    height: 80,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

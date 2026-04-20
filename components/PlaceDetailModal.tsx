@@ -3,13 +3,13 @@ import { View, Text, StyleSheet, Modal, Pressable, ScrollView, Linking, Alert, A
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { HerePlace, formatDistance, formatPhone } from '../lib/hereSearch';
-import { getBusinessById, YelpBusiness } from '../lib/yelpApi';
+import { getBusinessById, searchByNameAndLocation, YelpBusiness } from '../lib/yelpApi';
 
 interface PlaceDetailModalProps {
   visible: boolean;
   place: HerePlace | null;
   onClose: () => void;
-  onAdd: (place: HerePlace) => void;
+  onAdd: (place: HerePlace, yelpData?: YelpBusiness | null) => void;
 }
 
 export function PlaceDetailModal({ visible, place, onClose, onAdd }: PlaceDetailModalProps) {
@@ -19,32 +19,60 @@ export function PlaceDetailModal({ visible, place, onClose, onAdd }: PlaceDetail
 
   // Fetch Yelp data when modal opens
   useEffect(() => {
-    if (visible && place) {
+    const fetchYelpData = async () => {
+      if (!visible || !place) return;
+      
+      setLoadingYelp(true);
+      setYelpData(null); // Reset on new place
+      
+      // Method 1: HERE results have Yelp reference ID
       const yelpRef = place.references?.find(r => r.supplier?.id === 'yelp');
       if (yelpRef?.id) {
-        setLoadingYelp(true);
-        getBusinessById(yelpRef.id)
-          .then(data => setYelpData(data))
-          .catch(() => setYelpData(null))
-          .finally(() => setLoadingYelp(false));
-      } else {
-        setYelpData(null);
+        console.log('Fetching Yelp by ID:', yelpRef.id);
+        const data = await getBusinessById(yelpRef.id);
+        console.log('Yelp result:', data?.name, data?.phone);
+        setYelpData(data);
+        setLoadingYelp(false);
+        return;
       }
-    }
+      
+      // Method 2: LocationIQ results - search by name + location
+      if (place.position?.lat && place.position?.lng) {
+        console.log('Searching Yelp by name:', place.title, 'at', place.position.lat, place.position.lng);
+        const data = await searchByNameAndLocation(
+          place.title,
+          place.position.lat,
+          place.position.lng,
+          5 // 5 mile radius for matching
+        );
+        console.log('Yelp search result:', data?.name, data?.phone);
+        setYelpData(data);
+        setLoadingYelp(false);
+        return;
+      }
+      
+      console.log('No Yelp data available for this place');
+      setYelpData(null);
+      setLoadingYelp(false);
+    };
+    
+    fetchYelpData();
   }, [visible, place]);
 
   if (!place) return null;
 
-  const phone = place.contacts?.[0]?.phone?.[0]?.value;
+  // Use Yelp data if available (enriched from LocationIQ results)
+  const phone = yelpData?.phone || yelpData?.display_phone || place.contacts?.[0]?.phone?.[0]?.value;
   const email = place.contacts?.[0]?.email?.[0]?.value;
-  const website = place.contacts?.[0]?.www?.[0]?.value;
+  const website = yelpData?.url || place.contacts?.[0]?.www?.[0]?.value;
   const isOpen = place.openingHours?.[0]?.isOpen;
   const hours = place.openingHours?.[0]?.text || [];
   const yelpRef = place.references?.find(r => r.supplier?.id === 'yelp');
-  const yelpUrl = yelpRef ? `https://www.yelp.com/biz/${yelpRef.id}` : null;
+  const yelpUrl = yelpRef ? `https://www.yelp.com/biz/${yelpRef.id}` : (yelpData?.url || null);
 
   const handleAdd = () => {
-    onAdd(place);
+    // Pass Yelp-enriched data to onAdd
+    onAdd(place, yelpData);
     onClose();
   };
 

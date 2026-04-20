@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { useLocalSearchParams } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -32,13 +33,21 @@ type FilterType = 'all' | 'overdue' | 'upcoming' | 'scheduled' | 'completed';
 export default function TasksScreen() {
   const { colors } = useTheme();
   const params = useLocalSearchParams<{ category?: TaskCategory }>();
-  const { activePropertyTasks: tasks, addTask, updateTask, completeTask, deleteTask, properties, activePropertyId } = useApp();
+  const { activePropertyTasks: tasks, overdueTasks, upcomingTasks, addTask, updateTask, completeTask, deleteTask, properties, activePropertyId } = useApp();
   const [filter, setFilter] = useState<FilterType>('all');
   const [modalVisible, setModalVisible] = useState(false);
   const [templatesModalVisible, setTemplatesModalVisible] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState<TaskCategory | null>(
-    params.category || null
+  const [selectedCategory, setSelectedCategory] = useState<TaskCategory | null>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  // Reset to defaults when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      setFilter('all');
+      setSelectedCategory(null);
+      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+    }, [])
   );
 
   // Expandable FAB state
@@ -92,14 +101,22 @@ export default function TasksScreen() {
   const filteredTasks = tasks.filter(task => {
     if (selectedCategory && task.category !== selectedCategory) return false;
     if (filter === 'all') return true;
+    if (filter === 'overdue') return overdueTasks.includes(task);
+    if (filter === 'upcoming') return upcomingTasks.includes(task);
     return task.status === filter;
   }).sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
 
-  // Group tasks
+  // Group tasks - use dynamic computation for overdue/upcoming
   const groupedTasks = {
-    overdue: tasks.filter(t => t.status === 'overdue'),
-    upcoming: tasks.filter(t => t.status === 'upcoming'),
-    scheduled: tasks.filter(t => t.status === 'scheduled'),
+    overdue: overdueTasks,
+    upcoming: upcomingTasks,
+    scheduled: tasks.filter(t => {
+      // Scheduled = not overdue, not upcoming, not in_progress, not completed
+      if (t.status === 'completed' || t.status === 'in_progress') return false;
+      if (overdueTasks.includes(t)) return false;
+      if (upcomingTasks.includes(t)) return false;
+      return true;
+    }),
     inProgress: tasks.filter(t => t.status === 'in_progress'),
     completed: tasks.filter(t => t.status === 'completed'),
   };
@@ -307,7 +324,7 @@ export default function TasksScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={[styles.title, { color: colors.textPrimary }]}>Tasks</Text>
@@ -341,7 +358,7 @@ export default function TasksScreen() {
       </ScrollView>
 
       {/* Task List */}
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
+      <ScrollView ref={scrollViewRef} style={styles.scrollView} contentContainerStyle={styles.content}>
         {filter === 'all' ? (
           <>
             <TaskSection title="Overdue" tasks={groupedTasks.overdue} />
@@ -349,6 +366,9 @@ export default function TasksScreen() {
             <TaskSection title="Scheduled" tasks={groupedTasks.scheduled} />
             {groupedTasks.inProgress.length > 0 && (
               <TaskSection title="In Progress" tasks={groupedTasks.inProgress} />
+            )}
+            {groupedTasks.completed.length > 0 && (
+              <TaskSection title="Completed" tasks={groupedTasks.completed} />
             )}
           </>
         ) : (

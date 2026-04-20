@@ -54,6 +54,8 @@ export interface HomeInfo {
   city?: string;
   state?: string;
   zip?: string;
+  lat?: number;
+  lng?: number;
   purchaseDate?: string;
   purchasePrice?: number;
   squareFeet?: number;
@@ -171,25 +173,47 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [state]);
 
   // Computed values - filtered by active property
+  // Include tasks without propertyId (legacy) in active property
   const activePropertyTasks = state.tasks.filter(t => 
-    t.propertyId === state.activePropertyId
+    !t.propertyId || t.propertyId === state.activePropertyId
   );
   const activePropertyPros = state.pros.filter(p => 
-    p.propertyId === state.activePropertyId
+    !p.propertyId || p.propertyId === state.activePropertyId
   );
   const activePropertyInventory = state.inventory.filter(i => 
-    i.propertyId === state.activePropertyId
+    !i.propertyId || i.propertyId === state.activePropertyId
   );
 
-  const overdueTasks = activePropertyTasks.filter(t => t.status === 'overdue');
-  const upcomingTasks = activePropertyTasks.filter(t => {
-    if (t.status === 'upcoming') return true;
-    if (t.status === 'scheduled') {
-      const due = new Date(t.dueDate);
-      const weekFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-      return due <= weekFromNow;
+  // Compute overdue tasks dynamically based on due date
+  const overdueTasks = activePropertyTasks.filter(t => {
+    if (t.status === 'completed') return false;
+    // Parse date - handle both ISO format and YYYY-MM-DD
+    let dueDate: Date;
+    if (t.dueDate.includes('T')) {
+      dueDate = new Date(t.dueDate);
+    } else {
+      const [year, month, day] = t.dueDate.split('-').map(Number);
+      dueDate = new Date(year, month - 1, day);
     }
-    return false;
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    return dueDate < now;
+  });
+  
+  // Compute upcoming tasks
+  const upcomingTasks = activePropertyTasks.filter(t => {
+    if (t.status === 'completed') return false;
+    let dueDate: Date;
+    if (t.dueDate.includes('T')) {
+      dueDate = new Date(t.dueDate);
+    } else {
+      const [year, month, day] = t.dueDate.split('-').map(Number);
+      dueDate = new Date(year, month - 1, day);
+    }
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    return dueDate >= now && dueDate <= weekFromNow;
   });
 
   const healthScore = (() => {
@@ -204,8 +228,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // Task actions
   const addTask = (taskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
+    // Auto-determine status based on due date if not provided
+    const dueDate = new Date(taskData.dueDate);
+    const now = new Date();
+    now.setHours(0, 0, 0, 0); // Compare dates only, not time
+    
+    let status: TaskStatus = taskData.status || 'scheduled';
+    if (!taskData.status) {
+      if (dueDate < now) {
+        status = 'overdue';
+      } else {
+        const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+        status = dueDate <= weekFromNow ? 'upcoming' : 'scheduled';
+      }
+    }
+    
     const task: Task = {
       ...taskData,
+      status,
       propertyId: taskData.propertyId || state.activePropertyId || undefined,
       id: generateId(),
       createdAt: new Date().toISOString(),

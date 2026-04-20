@@ -1,9 +1,15 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
+import * as Haptics from 'expo-haptics';
 
 export default function TabLayout() {
   const { colors, isDark } = useTheme();
+
+  // Haptic feedback on tab press
+  const handleTabPress = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
 
   return (
     <Tabs
@@ -14,8 +20,8 @@ export default function TabLayout() {
           borderTopColor: isDark ? '#1F1F23' : '#E5E5E5',
           borderTopWidth: 1,
           paddingTop: 8,
-          paddingBottom: 10,
-          height: 65,
+          paddingBottom: 24,
+          height: 80,
         },
         tabBarActiveTintColor: '#F59E0B',
         tabBarInactiveTintColor: isDark ? '#52525B' : '#A1A1AA',
@@ -29,6 +35,9 @@ export default function TabLayout() {
             <Ionicons name="home" size={size} color={color} />
           ),
         }}
+        listeners={{
+          tabPress: handleTabPress,
+        }}
       />
       <Tabs.Screen
         name="tasks"
@@ -37,6 +46,9 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="checkmark-done" size={size} color={color} />
           ),
+        }}
+        listeners={{
+          tabPress: handleTabPress,
         }}
       />
       <Tabs.Screen
@@ -47,6 +59,9 @@ export default function TabLayout() {
             <Ionicons name="cube" size={size} color={color} />
           ),
         }}
+        listeners={{
+          tabPress: handleTabPress,
+        }}
       />
       <Tabs.Screen
         name="pros"
@@ -56,6 +71,9 @@ export default function TabLayout() {
             <Ionicons name="construct" size={size} color={color} />
           ),
         }}
+        listeners={{
+          tabPress: handleTabPress,
+        }}
       />
       <Tabs.Screen
         name="settings"
@@ -64,6 +82,9 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="settings" size={size} color={color} />
           ),
+        }}
+        listeners={{
+          tabPress: handleTabPress,
         }}
       />
     </Tabs>

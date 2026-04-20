@@ -1,15 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, Pressable, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useTheme } from '../contexts/ThemeContext';
 import { HomeInfo } from '../contexts/AppContext';
+import { geocodeAddress } from '../lib/hereSearch';
 
 interface AddPropertyModalProps {
   visible: boolean;
   onClose: () => void;
   onSave: (property: Omit<HomeInfo, 'id'>) => void;
+  initialProperty?: HomeInfo | null;
 }
 
-export function AddPropertyModal({ visible, onClose, onSave }: AddPropertyModalProps) {
+export function AddPropertyModal({ visible, onClose, onSave, initialProperty }: AddPropertyModalProps) {
   const { colors } = useTheme();
   
   const [name, setName] = useState('');
@@ -21,13 +23,51 @@ export function AddPropertyModal({ visible, onClose, onSave }: AddPropertyModalP
   const [squareFeet, setSquareFeet] = useState('');
   const [yearBuilt, setYearBuilt] = useState('');
 
-  const handleSave = () => {
+  // Populate form when initialProperty changes
+  useEffect(() => {
+    if (initialProperty) {
+      setName(initialProperty.name || '');
+      setAddress(initialProperty.address || '');
+      setCity(initialProperty.city || '');
+      setState(initialProperty.state || '');
+      setZip(initialProperty.zip || '');
+      setPurchasePrice(initialProperty.purchasePrice?.toString() || '');
+      setSquareFeet(initialProperty.squareFeet?.toString() || '');
+      setYearBuilt(initialProperty.yearBuilt?.toString() || '');
+    } else {
+      // Reset form for new property
+      setName('');
+      setAddress('');
+      setCity('');
+      setState('');
+      setZip('');
+      setPurchasePrice('');
+      setSquareFeet('');
+      setYearBuilt('');
+    }
+  }, [initialProperty]);
+
+  const handleSave = async () => {
+    // Geocode the address to get coordinates for climate zone detection
+    let coords = null;
+    if (zip.trim()) {
+      // Try ZIP first (works for geocodeAddress)
+      coords = await geocodeAddress(zip.trim());
+      if (!coords && address.trim() && city.trim()) {
+        // If ZIP failed, try full address
+        const fullAddress = `${address.trim()}, ${city.trim()}, ${state.trim() || 'NJ'} ${zip.trim()}`;
+        coords = await geocodeAddress(fullAddress);
+      }
+    }
+    
     onSave({
       name: name.trim() || undefined,
       address: address.trim() || undefined,
       city: city.trim() || undefined,
       state: state.trim().toUpperCase() || undefined,
       zip: zip.trim() || undefined,
+      lat: coords?.lat,
+      lng: coords?.lng,
       purchasePrice: purchasePrice ? parseInt(purchasePrice) : undefined,
       squareFeet: squareFeet ? parseInt(squareFeet) : undefined,
       yearBuilt: yearBuilt ? parseInt(yearBuilt) : undefined,
@@ -58,7 +98,7 @@ export function AddPropertyModal({ visible, onClose, onSave }: AddPropertyModalP
       >
         <Pressable style={[styles.modal, { backgroundColor: colors.surface }]} onPress={() => {}}>
           <View style={styles.header}>
-            <Text style={[styles.title, { color: colors.textPrimary }]}>Add Property</Text>
+            <Text style={[styles.title, { color: colors.textPrimary }]}>{initialProperty ? 'Edit Property' : 'Add Property'}</Text>
             <Pressable onPress={onClose}>
               <Text style={[styles.cancelBtn, { color: colors.textSecondary }]}>Cancel</Text>
             </Pressable>

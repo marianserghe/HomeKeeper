@@ -1,15 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Alert, Linking, ActivityIndicator, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { useTheme } from '../../contexts/ThemeContext';
 import { usePros } from '../../contexts/AppContext';
-import { AddProModal } from '../../components/AddProModal';
+import { AddProModal, ProFormData, SavedPro } from '../../components/AddProModal';
 import { PlaceDetailModal } from '../../components/PlaceDetailModal';
-import { ProDetailModal, SavedPro } from '../../components/ProDetailModal';
-import { searchNearby, HerePlace, formatDistance, formatPhone, PRO_CATEGORIES_HERE } from '../../lib/hereSearch';
+import { ProDetailModal } from '../../components/ProDetailModal';
+import { searchNearby, HerePlace, formatDistance, formatPhone, geocodeAddress } from '../../lib/hereSearch';
+import { YelpBusiness } from '../../lib/yelpApi';
 
 export default function ProsScreen() {
   const { colors } = useTheme();
@@ -17,10 +19,13 @@ export default function ProsScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('handyman');
   const [searchQuery, setSearchQuery] = useState('');
+  const scrollViewRef = useRef<ScrollView>(null);
   
   // Location state
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [manualZip, setManualZip] = useState('');
+  const [usingManualZip, setUsingManualZip] = useState(false);
   const [searching, setSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<HerePlace[]>([]);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
@@ -31,6 +36,18 @@ export default function ProsScreen() {
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedPro, setSelectedPro] = useState<SavedPro | null>(null);
   const [proDetailModalVisible, setProDetailModalVisible] = useState(false);
+  const [editingPro, setEditingPro] = useState<SavedPro | null>(null);
+
+  // Reset to defaults when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      setSearchQuery('');
+      setActiveCategory(null);
+      setSearchResults([]);
+      setAllResults([]);
+      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+    }, [])
+  );
 
   // Get location on mount
   useEffect(() => {
@@ -53,6 +70,27 @@ export default function ProsScreen() {
     })();
   }, []);
 
+  // Handle manual ZIP code
+  const handleUseZip = async () => {
+    if (!manualZip || manualZip.length !== 5) {
+      Alert.alert('Invalid ZIP', 'Please enter a 5-digit ZIP code.');
+      return;
+    }
+    
+    setSearching(true);
+    setLocationError(null);
+    
+    // Geocode the ZIP code
+    const coords = await geocodeAddress(manualZip);
+    if (coords) {
+      setLocation(coords);
+      setUsingManualZip(true);
+    } else {
+      setLocationError('Could not find location for ZIP code');
+    }
+    setSearching(false);
+  };
+
   // Filter results when radius changes
   useEffect(() => {
     if (allResults.length > 0) {
@@ -74,18 +112,15 @@ export default function ProsScreen() {
     { key: 'roofer', label: 'Roofer', icon: 'home' as const },
   ];
 
-  const handleSavePro = (proData: {
-    name: string;
-    category: string;
-    phone?: string;
-    email?: string;
-    company?: string;
-    notes?: string;
-  }) => {
-    addPro({
-      ...proData,
-      category: proData.category,
-    });
+  const handleSavePro = (proData: ProFormData) => {
+    if (editingPro) {
+      // Update existing pro
+      updatePro(editingPro.id, proData);
+      setEditingPro(null);
+    } else {
+      // Add new pro
+      addPro(proData);
+    }
   };
 
   const handleDeletePro = (id: string, name: string) => {
@@ -110,11 +145,11 @@ export default function ProsScreen() {
     setSearching(true);
     setSearchResults([]);
 
-    const query = PRO_CATEGORIES_HERE[categoryKey] || categoryKey;
-    // Always fetch with max radius (50mi), filter locally for instant radius changes
-    const results = await searchNearby(query, location.lat, location.lng, 80467); // 50 miles
-    
-    setAllResults(results); // Store all results
+    // Use HERE API - pass category key directly (searchNearby handles expansion)
+    console.log('Searching HERE for:', categoryKey);
+    const results = await searchNearby(categoryKey, location.lat, location.lng, 80467);
+    console.log('HERE results:', results.length, 'sample:', results[0]?.title, results[0]?.contacts?.[0]?.phone?.[0]?.value);
+    setAllResults(results);
     setSearching(false);
   };
 
@@ -126,23 +161,24 @@ export default function ProsScreen() {
     setSearching(true);
     setSearchResults([]);
     
-    // Always fetch with max radius (50mi), filter locally for instant radius changes
+    // Use HERE API (better coverage)
     const results = await searchNearby(searchQuery.trim(), location.lat, location.lng, 80467);
-    
     setAllResults(results);
     setSearching(false);
   };
 
-  const handleAddFromSearch = (place: HerePlace) => {
-    const phone = place.contacts?.[0]?.phone?.[0]?.value;
+  const handleAddFromSearch = (place: HerePlace, yelpData?: YelpBusiness | null) => {
+    // Use Yelp data if available (enriched from search results), otherwise use HERE data
+    const phone = yelpData?.phone || yelpData?.display_phone || place.contacts?.[0]?.phone?.[0]?.value;
     const email = place.contacts?.[0]?.email?.[0]?.value;
-    const website = place.contacts?.[0]?.www?.[0]?.value;
+    const website = yelpData?.url || place.contacts?.[0]?.www?.[0]?.value;
     
     // Extract just the business name (before any comma or dash)
     const name = place.title.split(/[-,]/)[0].trim();
     
     // Check if already exists (by phone or company name)
-    const existingByPhone = phone ? pros.find(p => p.phone === formatPhone(phone)) : null;
+    const formattedPhone = phone ? formatPhone(phone) : undefined;
+    const existingByPhone = formattedPhone ? pros.find(p => p.phone === formattedPhone) : null;
     const existingByCompany = pros.find(p => p.company === place.title);
     
     if (existingByPhone || existingByCompany) {
@@ -150,13 +186,17 @@ export default function ProsScreen() {
       return;
     }
     
+    // Build notes - address only, keep it clean
+    const notes = place.address.label;
+    
     addPro({
       name,
       category: activeCategory || 'other',
-      phone: phone ? formatPhone(phone) : undefined,
+      phone: formattedPhone,
       email,
       company: place.title,
-      notes: `${place.address.label}${website ? `\nWebsite: ${website}` : ''}`,
+      notes,
+      rating: yelpData?.rating, // Store Yelp rating separately
     });
     
     Alert.alert('Added!', `${name} saved to your contacts.`);
@@ -224,9 +264,9 @@ export default function ProsScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <KeyboardAvoidingView
-        style={{ flex: 1 }}
+        style={[styles.keyboardView, { backgroundColor: colors.background }]}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         {/* Header */}
@@ -238,7 +278,7 @@ export default function ProsScreen() {
       </View>
 
       {/* Your Pros List */}
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
+      <ScrollView ref={scrollViewRef} style={styles.scrollView} contentContainerStyle={styles.content}>
         {pros.length > 0 ? (
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
@@ -309,16 +349,79 @@ export default function ProsScreen() {
         <View style={[styles.findSection, { backgroundColor: colors.surface }]}>
           <View style={styles.findHeader}>
             <Text style={[styles.findTitle, { color: colors.textPrimary }]}>Find Pros Nearby</Text>
-            {location && (
+            {location && !usingManualZip && (
               <View style={styles.locationBadge}>
                 <Ionicons name="locate" size={12} color={colors.success} />
                 <Text style={[styles.locationText, { color: colors.success }]}>GPS Active</Text>
+              </View>
+            )}
+            {usingManualZip && (
+              <View style={styles.locationBadge}>
+                <Ionicons name="pin" size={12} color={colors.primary} />
+                <Text style={[styles.locationText, { color: colors.primary }]}>ZIP: {manualZip}</Text>
               </View>
             )}
             {locationError && (
               <Text style={[styles.locationError, { color: colors.error }]}>{locationError}</Text>
             )}
           </View>
+          
+          {/* Manual ZIP Code */}
+          {locationError && !location && (
+            <View style={[styles.zipRow, { marginTop: 12 }]}>
+              <TextInput
+                style={[styles.zipInput, { backgroundColor: colors.background, color: colors.textPrimary, borderColor: colors.border }]}
+                value={manualZip}
+                onChangeText={setManualZip}
+                placeholder="Enter ZIP code"
+                placeholderTextColor={colors.textTertiary}
+                keyboardType="number-pad"
+                maxLength={5}
+              />
+              <Pressable 
+                style={[styles.zipButton, { backgroundColor: colors.primary }]}
+                onPress={handleUseZip}
+              >
+                <Text style={[styles.zipButtonText, { color: colors.white }]}>Use ZIP</Text>
+              </Pressable>
+            </View>
+          )}
+          
+          {/* Switch to ZIP button if GPS active */}
+          {location && !usingManualZip && (
+            <Pressable 
+              style={[styles.switchLocationBtn, { borderColor: colors.border }]}
+              onPress={() => {
+                setLocation(null);
+                setLocationError('GPS disabled - enter ZIP code');
+              }}
+            >
+              <Ionicons name="swap-horizontal" size={14} color={colors.textSecondary} />
+              <Text style={[styles.switchLocationText, { color: colors.textSecondary }]}>Use ZIP instead</Text>
+            </Pressable>
+          )}
+          
+          {/* Switch back to GPS if using ZIP */}
+          {usingManualZip && (
+            <Pressable 
+              style={[styles.switchLocationBtn, { borderColor: colors.border }]}
+              onPress={async () => {
+                setUsingManualZip(false);
+                setLocationError(null);
+                const { status } = await Location.requestForegroundPermissionsAsync();
+                if (status === 'granted') {
+                  const position = await Location.getCurrentPositionAsync({});
+                  setLocation({
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude,
+                  });
+                }
+              }}
+            >
+              <Ionicons name="locate" size={14} color={colors.primary} />
+              <Text style={[styles.switchLocationText, { color: colors.primary }]}>Use GPS instead</Text>
+            </Pressable>
+          )}
           
           {/* Radius Slider */}
           <View style={styles.radiusRow}>
@@ -447,9 +550,13 @@ export default function ProsScreen() {
       {/* Add Pro Modal */}
       <AddProModal
         visible={modalVisible}
-        onClose={() => setModalVisible(false)}
+        onClose={() => {
+          setModalVisible(false);
+          setEditingPro(null);
+        }}
         onSave={handleSavePro}
         initialCategory={selectedCategory}
+        editingPro={editingPro}
       />
 
       {/* Place Detail Modal */}
@@ -466,6 +573,10 @@ export default function ProsScreen() {
         pro={selectedPro}
         onClose={() => setProDetailModalVisible(false)}
         onDelete={handleDeletePro}
+        onEdit={(pro) => {
+          setEditingPro(pro);
+          setModalVisible(true);
+        }}
       />
     </SafeAreaView>
   );
@@ -473,6 +584,9 @@ export default function ProsScreen() {
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+  },
+  keyboardView: {
     flex: 1,
   },
   header: {
@@ -782,5 +896,40 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,
+  },
+  zipRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  zipInput: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    borderWidth: 1,
+    fontSize: 16,
+  },
+  zipButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  zipButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  switchLocationBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    marginTop: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  switchLocationText: {
+    fontSize: 13,
   },
 });

@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Alert } from 'react-native';
+import { useState, useRef, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable, Alert, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useInventory } from '../../contexts/AppContext';
@@ -32,6 +33,15 @@ export default function InventoryScreen() {
   const { inventory, addInventoryItem, updateInventoryItem, deleteInventoryItem } = useInventory();
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<InventoryCategory | 'all'>('all');
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  // Reset to defaults when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      setSelectedCategory('all');
+      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+    }, [])
+  );
 
   // Filter inventory
   const filteredInventory = selectedCategory === 'all' 
@@ -122,11 +132,24 @@ export default function InventoryScreen() {
           {item.notes}
         </Text>
       )}
+      
+      {item.photos && item.photos.length > 0 && (
+        <View style={styles.photosRow}>
+          {item.photos.map((uri, index) => (
+            <Image 
+              key={index} 
+              source={{ uri }} 
+              style={styles.photoThumb}
+              accessibilityLabel={`${item.name} photo ${index + 1}`}
+            />
+          ))}
+        </View>
+      )}
     </Pressable>
   );
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={[styles.title, { color: colors.textPrimary }]}>Inventory</Text>
@@ -189,7 +212,7 @@ export default function InventoryScreen() {
       </ScrollView>
 
       {/* Inventory List */}
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
+      <ScrollView ref={scrollViewRef} style={styles.scrollView} contentContainerStyle={styles.content}>
         {selectedCategory === 'all' ? (
           // Grouped view
           Object.entries(groupedInventory).map(([category, items]) => (
@@ -370,6 +393,18 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 8,
     marginLeft: 52,
+  },
+  photosRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 10,
+    marginLeft: 52,
+  },
+  photoThumb: {
+    width: 48,
+    height: 48,
+    borderRadius: 6,
+    resizeMode: 'cover',
   },
   emptyState: {
     alignItems: 'center',

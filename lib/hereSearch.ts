@@ -77,56 +77,50 @@ export async function searchNearby(
     }
   };
   
-  // Try the base query first
-  const baseUrl = `${DISCOVER_URL}?at=${latitude},${longitude}&radius=${radiusMeters}&q=${encodeURIComponent(query)}&apiKey=${HERE_API_KEY}&limit=50`;
+  // Search terms to try - balanced between specific and general
+  const searchTerms: Record<string, string[]> = {
+    'handyman': ['handyman', 'handyman service', 'home repair'],
+    'plumber': ['plumber', 'plumbing service'],
+    'electrician': ['electrician', 'electrical contractor'],
+    'hvac': ['hvac', 'hvac service', 'air conditioning', 'heating and cooling'],
+    'landscaper': ['landscaping', 'lawn care', 'landscaper'],
+    'cleaner': ['cleaning service', 'house cleaning', 'maid'],
+    'pest': ['pest control', 'exterminator'],
+    'roofer': ['roofing', 'roofer', 'roofing contractor'],
+    'painter': ['painter', 'painting service', 'house painting'],
+  };
   
-  try {
-    const response = await fetch(baseUrl);
-    if (response.ok) {
-      const data = await response.json();
-      if (data.items) addResults(data.items);
-    }
-  } catch (e) {
-    console.error('Search error:', e);
-  }
+  const queryLower = query.toLowerCase();
+  const terms = searchTerms[queryLower] || [query];
   
-  // If we didn't get many results, try a broader term
-  if (allResults.length < 5) {
-    const broaderTerms: Record<string, string> = {
-      'electrician': 'electrical',
-      'plumber': 'plumbing',
-      'hvac': 'heating cooling',
-      'landscaper': 'landscaping lawn',
-      'cleaner': 'cleaning',
-      'roofer': 'roofing contractor',
-      'painter': 'painting',
-    };
+  // Try each search term - collect all unique results
+  for (const term of terms) {
+    const url = `${DISCOVER_URL}?at=${latitude},${longitude}&radius=${radiusMeters}&q=${encodeURIComponent(term)}&apiKey=${HERE_API_KEY}&limit=50`;
     
-    const queryLower = query.toLowerCase();
-    const broader = broaderTerms[queryLower];
-    
-    if (broader) {
-      const broaderUrl = `${DISCOVER_URL}?at=${latitude},${longitude}&radius=${radiusMeters}&q=${encodeURIComponent(broader)}&apiKey=${HERE_API_KEY}&limit=50`;
-      
-      try {
-        const response = await fetch(broaderUrl);
-        if (response.ok) {
-          const data = await response.json();
-          if (data.items) addResults(data.items);
+    try {
+      const response = await fetch(url);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.items) {
+          addResults(data.items);
         }
-      } catch (e) {
-        console.error('Broader search error:', e);
       }
+    } catch (e) {
+      console.error('Search error for term:', term, e);
     }
   }
   
-  console.log('HERE search results:', allResults.length, 'for query:', query);
+  console.log('HERE search results:', allResults.length, 'for query:', query, 'terms tried:', terms.length);
   return allResults;
 }
 
 // Geocode an address to coordinates
 export async function geocodeAddress(address: string): Promise<{ lat: number; lng: number } | null> {
-  const url = `${GEOCODE_URL}?q=${encodeURIComponent(address)}&apiKey=${HERE_API_KEY}&limit=1`;
+  // Add country filter for US addresses
+  const isZip = /^\d{5}$/.test(address.trim());
+  const query = isZip ? `${address.trim()}, USA` : address;
+  
+  const url = `${GEOCODE_URL}?q=${encodeURIComponent(query)}&apiKey=${HERE_API_KEY}&limit=1&in=countryCode:USA`;
   
   try {
     const response = await fetch(url);
@@ -135,8 +129,10 @@ export async function geocodeAddress(address: string): Promise<{ lat: number; ln
     }
     const data: GeocodeResponse = await response.json();
     if (data.items && data.items.length > 0) {
+      console.log('Geocoded:', query, '→', data.items[0].position, data.items[0].address?.label);
       return data.items[0].position;
     }
+    console.log('No geocode results for:', query);
     return null;
   } catch (error) {
     console.error('HERE geocode error:', error);

@@ -1,237 +1,280 @@
-import { useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-  withTiming,
-  withDelay,
-  Easing,
-  interpolate,
-  Extrapolation,
-} from 'react-native-reanimated';
+import { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Pressable, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 
 interface HomeHealthCardProps {
   score: number;
   overdueCount: number;
+  completedCount?: number;
+  totalCount?: number;
   onPress?: () => void;
 }
 
-export function HomeHealthCard({ score, overdueCount, onPress }: HomeHealthCardProps) {
-  const { colors } = useTheme();
+export function HomeHealthCard({ score, overdueCount, completedCount = 0, totalCount = 0, onPress }: HomeHealthCardProps) {
+  const { colors, isDark } = useTheme();
 
   // Animation values
-  const progress = useSharedValue(0);
-  const scoreOpacity = useSharedValue(0);
-  const scoreScale = useSharedValue(0.5);
-  const factor1 = useSharedValue(0);
-  const factor2 = useSharedValue(0);
-  const factor3 = useSharedValue(0);
-  const factor4 = useSharedValue(0);
+  const progressAnim = useRef(new Animated.Value(0)).current;
+  const scoreOpacity = useRef(new Animated.Value(0)).current;
+  const scoreScale = useRef(new Animated.Value(0.5)).current;
+  const pulseAnim = useRef(new Animated.Value(0)).current;
 
   // Get color based on score
   const getScoreColor = (s: number) => {
     if (s >= 80) return colors.success;
-    if (s >= 60) return colors.warning;
+    if (s >= 60) return colors.warning; // amber
     return colors.error;
   };
 
   const scoreColor = getScoreColor(score);
 
+  // Pulse animation for glow effect
+  useEffect(() => {
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 0,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    pulse.start();
+    return () => pulse.stop();
+  }, [pulseAnim]);
+
   // Animate on mount
   useEffect(() => {
-    // Progress bar animation (fills 0 to score over 1 second)
-    progress.value = withTiming(score, {
+    // Progress bar animation
+    Animated.timing(progressAnim, {
+      toValue: score,
       duration: 1000,
-      easing: Easing.out(Easing.cubic),
-    });
+      useNativeDriver: false,
+    }).start();
 
     // Score number pops in after progress completes
-    scoreOpacity.value = withDelay(1000, withTiming(1, { duration: 300 }));
-    scoreScale.value = withDelay(1000, withSpring(1, { damping: 8, stiffness: 200 }));
-
-    // Factors pop in one by one after score appears
-    factor1.value = withDelay(1400, withSpring(1, { damping: 10, stiffness: 150 }));
-    factor2.value = withDelay(1600, withSpring(1, { damping: 10, stiffness: 150 }));
-    factor3.value = withDelay(1800, withSpring(1, { damping: 10, stiffness: 150 }));
-    factor4.value = withDelay(2000, withSpring(1, { damping: 10, stiffness: 150 }));
+    Animated.sequence([
+      Animated.delay(500),
+      Animated.parallel([
+        Animated.timing(scoreOpacity, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.spring(scoreScale, {
+          toValue: 1,
+          damping: 8,
+          stiffness: 200,
+          useNativeDriver: true,
+        }),
+      ]),
+    ]).start();
   }, [score]);
 
-  // Animated styles
-  const progressStyle = useAnimatedStyle(() => ({
-    width: `${progress.value}%`,
-  }));
-
-  const scoreStyle = useAnimatedStyle(() => ({
-    opacity: scoreOpacity.value,
-    transform: [{ scale: scoreScale.value }],
-  }));
-
-  // Factor animated styles
-  const factorStyle1 = useAnimatedStyle(() => ({
-    opacity: factor1.value,
-    transform: [{ scale: factor1.value }],
-  }));
-  const factorStyle2 = useAnimatedStyle(() => ({
-    opacity: factor2.value,
-    transform: [{ scale: factor2.value }],
-  }));
-  const factorStyle3 = useAnimatedStyle(() => ({
-    opacity: factor3.value,
-    transform: [{ scale: factor3.value }],
-  }));
-  const factorStyle4 = useAnimatedStyle(() => ({
-    opacity: factor4.value,
-    transform: [{ scale: factor4.value }],
-  }));
-
-  // Generate health message
+  // Generate health message - clever/fun messages
   const getHealthMessage = () => {
-    if (score >= 95) return { emoji: '✨', text: 'Excellent! Home is in perfect shape' };
-    if (score >= 80) return { emoji: '🏠', text: 'Great! Just a few small things' };
-    if (score >= 60) return { emoji: '⚠️', text: 'Needs some attention' };
-    if (score >= 40) return { emoji: '🔧', text: 'Several tasks need attention' };
-    return { emoji: '🚨', text: 'Urgent: Multiple overdue tasks' };
+    if (score >= 95) return 'Pristine! Your home is sparkling';
+    if (score >= 80) return "Lookin' good! Minor touch-ups";
+    if (score >= 60) return "A few things need love";
+    if (score >= 40) return "Your house called. It's lonely.";
+    if (score >= 20) return "Things are piling up... literally";
+    return "Your house needs therapy";
+  };
+
+  // Dynamic headline based on score
+  const getHeadline = () => {
+    if (score >= 80) return 'House Champion';
+    if (score >= 60) return 'Could Be Worse';
+    if (score >= 40) return 'Reality Check';
+    if (score >= 20) return 'Fire Drill';
+    return 'Emergency Room';
   };
 
   const healthMessage = getHealthMessage();
 
-  // Health factors
-  const factors = [
-    { icon: 'shield-checkmark', label: 'Safety', status: 'good' },
-    { icon: 'thermometer', label: 'HVAC', status: 'good' },
-    { icon: 'construct', label: 'Maintenance', status: overdueCount > 0 ? 'warning' : 'good' },
-    { icon: 'home', label: 'Exterior', status: 'good' },
-  ];
+  // Animated progress width
+  const progressWidth = progressAnim.interpolate({
+    inputRange: [0, 100],
+    outputRange: ['0%', '100%'],
+  });
 
-  const factorStyles = [factorStyle1, factorStyle2, factorStyle3, factorStyle4];
+  // Calculate completion ratio
+  const completedRatio = totalCount > 0 ? completedCount / totalCount : 0;
 
   return (
     <Pressable onPress={onPress}>
-      <View style={[styles.container, { backgroundColor: colors.surface }]}>
-        {/* Main Content */}
-        <View style={styles.mainContent}>
-          {/* Left: Score Circle */}
-          <View style={styles.scoreSection}>
-            <Animated.View style={[styles.scoreCircle, { borderColor: scoreColor }, scoreStyle]}>
-              <Animated.Text style={[styles.scoreNumber, { color: scoreColor }]}>
-                {Math.round(score)}
-              </Animated.Text>
-            </Animated.View>
-            <Animated.Text style={[styles.scoreLabel, { color: colors.textSecondary }]}>
-              Health Score
-            </Animated.Text>
-          </View>
-
-          {/* Right: Progress & Factors */}
-          <View style={styles.rightSection}>
-            {/* Progress Bar */}
-            <View style={styles.progressContainer}>
-              <View style={[styles.progressBackground, { backgroundColor: colors.gray200 }]}>
-                <Animated.View style={[styles.progressFill, { backgroundColor: scoreColor }, progressStyle]} />
-              </View>
-              <View style={styles.progressLabels}>
-                <Text style={[styles.progressLabel, { color: colors.textTertiary }]}>0</Text>
-                <Text style={[styles.progressLabel, { color: colors.textTertiary }]}>100</Text>
-              </View>
-            </View>
-
-            {/* Message */}
-            <View style={styles.messageRow}>
-              <Text style={styles.emoji}>{healthMessage.emoji}</Text>
-              <Text style={[styles.message, { color: colors.textSecondary }]} numberOfLines={1}>
-                {healthMessage.text}
+      {/* Glow layer */}
+      <Animated.View 
+        style={[
+          styles.glowContainer,
+          {
+            shadowColor: scoreColor,
+            shadowOpacity: pulseAnim.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0.15, 0.35],
+            }),
+          }
+        ]}
+      >
+        <View style={[styles.container, { backgroundColor: colors.surface }]}>
+          {/* Header Row */}
+          <View style={styles.headerRow}>
+            <View style={styles.titleSection}>
+              <Text style={[styles.title, { color: colors.textPrimary }]}>{getHeadline()}</Text>
+              <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+                {healthMessage}
               </Text>
             </View>
+            
+            {/* Score Badge */}
+            <Animated.View 
+              style={[
+                styles.scoreBadge, 
+                { backgroundColor: scoreColor + '20' },
+                { opacity: scoreOpacity, transform: [{ scale: scoreScale }] }
+              ]}
+            >
+              <Text style={[styles.scoreNumber, { color: scoreColor }]}>
+                {Math.round(score)}
+              </Text>
+            </Animated.View>
+          </View>
 
-            {/* Health Factors - Pop up one by one */}
-            <View style={styles.factorsRow}>
-              {factors.map((factor, index) => (
-                <Animated.View
-                  key={factor.label}
-                  style={[
-                    styles.factor,
-                    factorStyles[index],
-                    { backgroundColor: factor.status === 'good' ? colors.success + '15' : colors.warning + '15' },
-                  ]}
-                >
-                  <Ionicons
-                    name={factor.icon as any}
-                    size={12}
-                    color={factor.status === 'good' ? colors.success : colors.warning}
-                  />
-                  <Text style={[styles.factorLabel, { color: colors.textSecondary }]}>
-                    {factor.label}
-                  </Text>
-                </Animated.View>
-              ))}
+          {/* Progress Bar */}
+          <View style={styles.progressSection}>
+            <View style={[styles.progressBar, { backgroundColor: colors.gray200 }]}>
+              <Animated.View 
+                style={[
+                  styles.progressFill, 
+                  { backgroundColor: scoreColor, width: progressWidth }
+                ]} 
+              />
+            </View>
+            <View style={styles.progressLabels}>
+              <Text style={[styles.progressLabel, { color: colors.textTertiary }]}>0</Text>
+              <Text style={[styles.progressLabel, { color: colors.textTertiary }]}>100</Text>
             </View>
           </View>
-        </View>
 
-        {/* Action hint */}
-        {overdueCount > 0 && (
-          <View style={styles.actionHint}>
-            <Ionicons name="arrow-forward" size={14} color={colors.primary} />
-            <Text style={[styles.actionText, { color: colors.primary }]}>
-              {overdueCount} overdue task{overdueCount > 1 ? 's' : ''} need{overdueCount === 1 ? 's' : ''} attention
-            </Text>
+          {/* Stats Row */}
+          <View style={styles.statsRow}>
+            {/* Completed */}
+            <View style={styles.statItem}>
+              <View style={[styles.statIcon, { backgroundColor: colors.success + '15' }]}>
+                <Ionicons name="checkmark-circle" size={18} color={colors.success} />
+              </View>
+              <View style={styles.statText}>
+                <Text style={[styles.statValue, { color: colors.textPrimary }]}>{completedCount}</Text>
+                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Completed</Text>
+              </View>
+            </View>
+
+            {/* Divider */}
+            <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
+
+            {/* Overdue */}
+            <View style={styles.statItem}>
+              <View style={[styles.statIcon, { backgroundColor: overdueCount > 0 ? colors.error + '15' : colors.gray200 }]}>
+                <Ionicons name="alert-circle" size={18} color={overdueCount > 0 ? colors.error : colors.textTertiary} />
+              </View>
+              <View style={styles.statText}>
+                <Text style={[styles.statValue, { color: overdueCount > 0 ? colors.error : colors.textPrimary }]}>{overdueCount}</Text>
+                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Overdue</Text>
+              </View>
+            </View>
+
+            {/* Divider */}
+            <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
+
+            {/* Total */}
+            <View style={styles.statItem}>
+              <View style={[styles.statIcon, { backgroundColor: colors.primary + '15' }]}>
+                <Ionicons name="list" size={18} color={colors.primary} />
+              </View>
+              <View style={styles.statText}>
+                <Text style={[styles.statValue, { color: colors.textPrimary }]}>{totalCount}</Text>
+                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Total</Text>
+              </View>
+            </View>
           </View>
-        )}
-      </View>
+
+          {/* Action hint if overdue */}
+          {overdueCount > 0 && (
+            <View style={[styles.actionHint, { borderTopColor: colors.border }]}>
+              <Ionicons name="arrow-forward" size={14} color={colors.primary} />
+              <Text style={[styles.actionText, { color: colors.primary }]}>
+                {overdueCount} overdue task{overdueCount > 1 ? 's' : ''} need{overdueCount === 1 ? 's' : ''} attention
+              </Text>
+            </View>
+          )}
+        </View>
+      </Animated.View>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
+  glowContainer: {
+    borderRadius: 20,
+    shadowOffset: { width: 0, height: 0 },
+    shadowRadius: 20,
+    elevation: 8,
+    marginTop: 8,
+    marginBottom: 24,
+  },
   container: {
     borderRadius: 20,
     padding: 20,
-    marginBottom: 16,
     overflow: 'hidden',
   },
-  mainContent: {
+  headerRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'flex-start',
+    marginBottom: 16,
   },
-  scoreSection: {
-    alignItems: 'center',
-    marginRight: 20,
+  titleSection: {
+    flex: 1,
+    marginRight: 12,
   },
-  scoreCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    borderWidth: 6,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
+  title: {
+    fontSize: 36,
+    fontFamily: 'BebasNeue',
+    fontWeight: '400',
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  scoreBadge: {
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 18,
   },
   scoreNumber: {
-    fontSize: 42,
-    fontWeight: 'bold',
+    fontSize: 48,
+    fontFamily: 'BebasNeue',
+    fontWeight: '400',
+    letterSpacing: -1,
   },
-  scoreLabel: {
-    fontSize: 12,
-    fontWeight: '500',
+  progressSection: {
+    marginBottom: 16,
   },
-  rightSection: {
-    flex: 1,
-    paddingTop: 4,
-  },
-  progressContainer: {
-    marginBottom: 12,
-  },
-  progressBackground: {
-    height: 12,
-    borderRadius: 6,
+  progressBar: {
+    height: 10,
+    borderRadius: 5,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    borderRadius: 6,
+    borderRadius: 5,
   },
   progressLabels: {
     flexDirection: 'row',
@@ -242,35 +285,38 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '500',
   },
-  messageRow: {
+  statsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginBottom: 12,
+    justifyContent: 'space-around',
   },
-  emoji: {
-    fontSize: 16,
-  },
-  message: {
-    fontSize: 13,
-    flex: 1,
-  },
-  factorsRow: {
+  statItem: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    alignItems: 'center',
     gap: 8,
   },
-  factor: {
-    flexDirection: 'row',
+  statIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 16,
-    gap: 4,
   },
-  factorLabel: {
-    fontSize: 12,
-    fontWeight: '500',
+  statText: {
+    alignItems: 'flex-start',
+  },
+  statValue: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  statLabel: {
+    fontSize: 11,
+    marginTop: 1,
+  },
+  statDivider: {
+    width: 1,
+    height: 36,
+    opacity: 0.3,
   },
   actionHint: {
     flexDirection: 'row',
@@ -279,7 +325,6 @@ const styles = StyleSheet.create({
     marginTop: 16,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.1)',
   },
   actionText: {
     fontSize: 13,

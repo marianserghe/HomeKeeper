@@ -9,6 +9,7 @@ export interface SavedPro {
   phone?: string;
   email?: string;
   company?: string;
+  rating?: number;
   notes?: string;
   createdAt: string;
 }
@@ -18,12 +19,13 @@ interface ProDetailModalProps {
   pro: SavedPro | null;
   onClose: () => void;
   onDelete: (id: string, name: string) => void;
+  onEdit: (pro: SavedPro) => void;
 }
 
 // Capitalize first letter
 const capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 
-export function ProDetailModal({ visible, pro, onClose, onDelete }: ProDetailModalProps) {
+export function ProDetailModal({ visible, pro, onClose, onDelete, onEdit }: ProDetailModalProps) {
   const { colors } = useTheme();
 
   if (!pro) return null;
@@ -46,14 +48,22 @@ export function ProDetailModal({ visible, pro, onClose, onDelete }: ProDetailMod
     );
   };
 
+  const handleEdit = () => {
+    onEdit(pro);
+    onClose();
+  };
+
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
           <Pressable onPress={onClose} style={styles.closeButton}>
-            <Ionicons name="close" size={24} color={colors.textPrimary} />
+            <Ionicons name="close" size={24} color={colors.textSecondary} />
           </Pressable>
           <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Contact Details</Text>
+          <Pressable onPress={handleEdit} style={styles.editButton}>
+            <Ionicons name="create" size={22} color={colors.primary} />
+          </Pressable>
           <Pressable onPress={handleDelete} style={styles.deleteButton}>
             <Ionicons name="trash" size={22} color={colors.error} />
           </Pressable>
@@ -82,6 +92,14 @@ export function ProDetailModal({ visible, pro, onClose, onDelete }: ProDetailMod
                 {capitalize(pro.category)}
               </Text>
             </View>
+            {pro.rating && (
+              <View style={[styles.ratingBadge, { backgroundColor: '#FFD700' + '20' }]}>
+                <Ionicons name="star" size={14} color="#FFD700" />
+                <Text style={[styles.ratingText, { color: '#FFD700' }]}>
+                  {pro.rating.toFixed(1)}
+                </Text>
+              </View>
+            )}
           </View>
 
           {/* Contact Options */}
@@ -173,6 +191,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
   },
+  editButton: {
+    padding: 4,
+    marginRight: 12,
+  },
   deleteButton: {
     padding: 4,
   },
@@ -198,6 +220,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   categoryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 20,
   },
   categoryBadge: {
@@ -211,6 +235,20 @@ const styles = StyleSheet.create({
   },
   categoryText: {
     fontSize: 14,
+    fontWeight: '600',
+  },
+  ratingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+    marginLeft: 8,
+  },
+  ratingText: {
+    fontSize: 13,
     fontWeight: '600',
   },
   contactSection: {

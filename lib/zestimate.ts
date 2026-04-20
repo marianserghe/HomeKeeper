@@ -5,6 +5,48 @@
 // Apify API configuration
 const APIFY_API_KEY = process.env.EXPO_PUBLIC_APIFY_API_KEY || '';
 const APIFY_ACTOR_ID = 'axesso_data~zillow-search-by-address-scraper'; // Search by address
+const HERE_API_KEY = process.env.EXPO_PUBLIC_HERE_API_KEY || 'fOLsRJBzbQTclu5TbUbrgYA9xVwpclFzgKisf_meiJo';
+
+// Address autocomplete result
+export interface AddressSuggestion {
+  label: string;
+  street?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  country?: string;
+}
+
+/**
+ * Get address suggestions using HERE Geocoding API
+ */
+export async function autocompleteAddress(query: string): Promise<AddressSuggestion[]> {
+  if (!query || query.length < 3) return [];
+  
+  try {
+    const url = `https://autocomplete.search.hereapi.com/v1/autocomplete?` +
+      `q=${encodeURIComponent(query)}` +
+      `&limit=5` +
+      `&apikey=${HERE_API_KEY}`;
+    
+    const res = await fetch(url);
+    const data = await res.json();
+    
+    if (!data.items) return [];
+    
+    return data.items.map((item: any) => ({
+      label: item.address.label,
+      street: item.address.street,
+      city: item.address.city,
+      state: item.address.state,
+      postalCode: item.address.postalCode,
+      country: item.address.countryCode,
+    }));
+  } catch (error) {
+    console.error('Address autocomplete error:', error);
+    return [];
+  }
+}
 
 interface PropertyInput {
   address: string;
