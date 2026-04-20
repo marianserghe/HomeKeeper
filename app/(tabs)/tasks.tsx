@@ -280,14 +280,14 @@ export default function TasksScreen() {
           }}
           style={[
             styles.taskItem, 
-            { backgroundColor: colors.surface, borderLeftColor: priorityColor }
+            { backgroundColor: colors.surface }
           ]}
         >
           <View style={styles.taskRow}>
             <Ionicons
               name={TaskCategoryIcons[task.category]}
               size={18}
-              color={colors.primary}
+              color={priorityColor}
             />
             <Text style={[styles.taskTitle, { color: colors.textPrimary }]} numberOfLines={1}>
               {task.title}
@@ -595,7 +595,6 @@ const styles = StyleSheet.create({
     height: 56,
     paddingHorizontal: 14,
     borderRadius: 12,
-    borderLeftWidth: 4,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
