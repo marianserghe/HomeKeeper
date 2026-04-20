@@ -289,9 +289,9 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        {/* About */}
+        {/* Support */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>About</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Support</Text>
           <View style={[styles.sectionContent, { backgroundColor: colors.surface }]}>
             <Pressable 
               style={[styles.settingRow, { borderBottomColor: colors.border }]}
@@ -310,19 +310,26 @@ export default function SettingsScreen() {
               <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
             </Pressable>
             <Pressable 
+              style={[styles.settingRow, { borderBottomWidth: 0 }]}
+              onPress={() => Alert.alert('Rate HomeKeeper', 'Thanks for using HomeKeeper!')}
+            >
+              <Ionicons name="star-outline" size={20} color={colors.primary} style={styles.settingIcon} />
+              <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>Rate the App</Text>
+              <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
+            </Pressable>
+          </View>
+        </View>
+
+        {/* Legal */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Legal</Text>
+          <View style={[styles.sectionContent, { backgroundColor: colors.surface }]}>
+            <Pressable 
               style={[styles.settingRow, { borderBottomColor: colors.border }]}
               onPress={() => setTermsModalVisible(true)}
             >
               <Ionicons name="document-text-outline" size={20} color={colors.primary} style={styles.settingIcon} />
               <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>Terms of Service</Text>
-              <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
-            </Pressable>
-            <Pressable 
-              style={[styles.settingRow, { borderBottomColor: colors.border }]}
-              onPress={() => Alert.alert('Rate HomeKeeper', 'Thanks for using HomeKeeper!')}
-            >
-              <Ionicons name="star-outline" size={20} color={colors.primary} style={styles.settingIcon} />
-              <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>Rate the App</Text>
               <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
             </Pressable>
             <Pressable 
