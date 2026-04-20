@@ -17,6 +17,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { useTheme } from '../contexts/ThemeContext';
 import { InventoryCategory } from '../contexts/AppContext';
 import { DatePickerField } from './DatePickerField';
@@ -103,7 +104,7 @@ export function AddInventoryModal({ visible, onClose, onSave, editingItem }: Add
     
     const result = await ImagePicker.launchCameraAsync({
       mediaTypes: ['images'],
-      allowsEditing: true,
+      allowsEditing: false,
       quality: 0.6, // 60% quality for smaller size
     });
     
@@ -122,7 +123,7 @@ export function AddInventoryModal({ visible, onClose, onSave, editingItem }: Add
     
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
-      allowsEditing: true,
+      allowsEditing: false,
       quality: 0.6, // 60% quality for smaller size
       selectionLimit: 3 - photos.length, // Max 3 photos
     });
