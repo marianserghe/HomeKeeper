@@ -223,25 +223,6 @@ export default function SettingsScreen() {
                 thumbColor={colors.white}
               />
             </View>
-            <View style={[styles.settingRow, { borderBottomColor: colors.border }]}>
-              <Ionicons name="notifications" size={20} color={colors.primary} style={styles.settingIcon} />
-              <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>Notifications</Text>
-              <Switch
-                value={settings.notifications}
-                onValueChange={async (value) => {
-                  if (value) {
-                    const granted = await requestNotificationPermissions();
-                    if (granted) {
-                      updateSettings({ notifications: value });
-                    }
-                  } else {
-                    updateSettings({ notifications: value });
-                  }
-                }}
-                trackColor={{ false: colors.gray300, true: colors.primary }}
-                thumbColor={colors.white}
-              />
-            </View>
             <View style={[styles.settingRow, { borderBottomWidth: 0 }]}>
               <Ionicons name="alarm" size={20} color={colors.primary} style={styles.settingIcon} />
               <Text style={[styles.settingLabel, { color: colors.textPrimary }]}>Task Reminders</Text>
