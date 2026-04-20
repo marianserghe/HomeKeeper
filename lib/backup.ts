@@ -3,14 +3,52 @@
 // ============================================
 // Export/Import all app data as JSON
 // Local storage only - no cloud sync
+// Photos encoded as base64 for portability
 // ============================================
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
+import { File, Paths } from 'expo-file-system';
 import { format } from 'date-fns';
 
 const STORAGE_KEY = '@homekeeper_data';
+
+/**
+ * Convert image URI to base64 string
+ */
+async function imageToBase64(uri: string): Promise<string | null> {
+  try {
+    const file = new File(uri);
+    const base64 = await file.base64();
+    return `data:image/jpeg;base64,${base64}`;
+  } catch (error) {
+    console.error('Failed to convert image to base64:', error);
+    return null;
+  }
+}
+
+/**
+ * Convert base64 string to local file URI
+ */
+async function base64ToImage(base64Data: string): Promise<string | null> {
+  try {
+    // Remove data:image prefix if present
+    const base64 = base64Data.replace(/^data:image\/\w+;base64,/, '');
+    
+    // Generate unique filename
+    const filename = `photo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.jpg`;
+    const file = new File(Paths.document, filename);
+    
+    // Write base64 to file
+    await file.write(base64, { encoding: 'base64' });
+    
+    return file.uri;
+  } catch (error) {
+    console.error('Failed to convert base64 to image:', error);
+    return null;
+  }
+}
 
 // Backup data structure
 export interface BackupData {
@@ -33,10 +71,27 @@ export interface BackupData {
 
 /**
  * Export all app data to a JSON object
+ * Converts inventory photos to base64 for portability
  */
 export async function exportAllData(): Promise<BackupData> {
   const data = await AsyncStorage.getItem(STORAGE_KEY);
   const parsedData = data ? JSON.parse(data) : {};
+
+  // Convert inventory photos to base64
+  const inventoryWithBase64 = await Promise.all(
+    (parsedData.inventory || []).map(async (item: any) => {
+      if (item.photos && item.photos.length > 0) {
+        const base64Photos = await Promise.all(
+          item.photos.map((uri: string) => imageToBase64(uri))
+        );
+        return {
+          ...item,
+          photos: base64Photos.filter(Boolean),
+        };
+      }
+      return item;
+    })
+  );
 
   return {
     version: '1.0.0',
@@ -44,7 +99,7 @@ export async function exportAllData(): Promise<BackupData> {
     app: 'HomeKeeper',
     data: {
       tasks: parsedData.tasks || [],
-      inventory: parsedData.inventory || [],
+      inventory: inventoryWithBase64,
       pros: parsedData.pros || [],
       properties: parsedData.properties || [],
       activePropertyId: parsedData.activePropertyId || null,
@@ -123,6 +178,7 @@ export function formatBackupSummary(data: BackupData): string {
 
 /**
  * Import backup data
+ * Converts base64 photos back to local file URIs
  */
 export async function importAllData(jsonString: string): Promise<{ success: boolean; error?: string }> {
   try {
@@ -133,8 +189,38 @@ export async function importAllData(jsonString: string): Promise<{ success: bool
       return { success: false, error: validation.error };
     }
 
+    // Convert base64 photos back to local file URIs
+    const inventoryWithLocalPhotos = await Promise.all(
+      (parsed.data.inventory || []).map(async (item: any) => {
+        if (item.photos && item.photos.length > 0) {
+          const localPhotos = await Promise.all(
+            item.photos.map((photo: string) => {
+              // Check if it's base64 data
+              if (photo.startsWith('data:image')) {
+                return base64ToImage(photo);
+              }
+              // Already a local URI, keep as-is
+              return photo;
+            })
+          );
+          return {
+            ...item,
+            photos: localPhotos.filter(Boolean),
+          };
+        }
+        return item;
+      })
+    );
+
     // Save to AsyncStorage
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+    const dataToSave = {
+      ...parsed,
+      data: {
+        ...parsed.data,
+        inventory: inventoryWithLocalPhotos,
+      },
+    };
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
 
     return { success: true };
   } catch (error) {
