@@ -148,7 +148,7 @@ export function AddTaskModal({ visible, onClose, properties, activePropertyId, e
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
       >
-        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
           {/* Header */}
           <View style={[styles.header, { borderBottomColor: colors.border }]}>
             <Pressable onPress={onClose} style={styles.headerButton}>

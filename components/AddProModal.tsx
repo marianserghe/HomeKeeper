@@ -127,7 +127,7 @@ export function AddProModal({ visible, onClose, onSave, initialCategory, editing
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
         {/* Header */}
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
           <Pressable onPress={onClose} style={styles.headerButton}>
