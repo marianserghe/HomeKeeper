@@ -11,6 +11,7 @@ import { HelpModal } from '../../components/HelpModal';
 import { PrivacyPolicyModal } from '../../components/PrivacyPolicyModal';
 import { TermsOfServiceModal } from '../../components/TermsOfServiceModal';
 import { ContactSupportModal } from '../../components/ContactSupportModal';
+import { ExportDataModal } from '../../components/ExportDataModal';
 import { requestNotificationPermissions, cancelAllNotifications, scheduleAllTaskReminders } from '../../lib/notifications';
 
 // App version from app.json
@@ -18,7 +19,7 @@ const APP_VERSION = '1.0.0';
 
 export default function SettingsScreen() {
   const { colors, theme, setTheme } = useTheme();
-  const { homeInfo, updateHomeInfo, settings, updateSettings, tasks, pros, inventory, healthScore, clearAllData, properties, activePropertyId, reorderProperties, setActiveProperty, deleteProperty, addProperty, updateProperty } = useApp();
+  const { homeInfo, updateHomeInfo, settings, updateSettings, tasks, pros, inventory, healthScore, clearAllData, properties, activePropertyId, reorderProperties, setActiveProperty, deleteProperty, addProperty, updateProperty, loadData } = useApp();
   
   const [editingProperty, setEditingProperty] = useState<typeof properties[0] | null>(null);
   const [addPropertyModalVisible, setAddPropertyModalVisible] = useState(false);
@@ -26,6 +27,7 @@ export default function SettingsScreen() {
   const [privacyModalVisible, setPrivacyModalVisible] = useState(false);
   const [termsModalVisible, setTermsModalVisible] = useState(false);
   const [contactModalVisible, setContactModalVisible] = useState(false);
+  const [exportModalVisible, setExportModalVisible] = useState(false);
   
   const [editingHome, setEditingHome] = useState(false);
   const [tempHomeInfo, setTempHomeInfo] = useState(homeInfo);
@@ -76,16 +78,7 @@ export default function SettingsScreen() {
   };
 
   const handleExportData = () => {
-    const exportData = {
-      tasks,
-      pros,
-      inventory,
-      homeInfo,
-      settings,
-      exportDate: new Date().toISOString(),
-    };
-    console.log('Export data:', JSON.stringify(exportData, null, 2));
-    Alert.alert('Exported', 'Data has been logged to console. File export coming soon!');
+    setExportModalVisible(true);
   };
 
   const handleClearData = () => {
@@ -396,6 +389,16 @@ export default function SettingsScreen() {
         <ContactSupportModal
           visible={contactModalVisible}
           onClose={() => setContactModalVisible(false)}
+        />
+
+        {/* Export Data Modal */}
+        <ExportDataModal
+          visible={exportModalVisible}
+          onClose={() => setExportModalVisible(false)}
+          onImportComplete={() => {
+            // Reload app data after import
+            loadData();
+          }}
         />
       </KeyboardAvoidingView>
     </SafeAreaView>
