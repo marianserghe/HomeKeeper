@@ -144,11 +144,10 @@ export function AddTaskModal({ visible, onClose, properties, activePropertyId, e
       onRequestClose={onClose}
     >
       <KeyboardAvoidingView
-        style={styles.keyboardView}
+        style={[styles.keyboardView, { backgroundColor: colors.background }]}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
       >
-        <View style={{ flex: 1, backgroundColor: colors.background }}>
         <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
           {/* Header */}
           <View style={[styles.header, { borderBottomColor: colors.border }]}>
@@ -335,7 +334,6 @@ export function AddTaskModal({ visible, onClose, properties, activePropertyId, e
             </View>
           </ScrollView>
         </SafeAreaView>
-        </View>
       </KeyboardAvoidingView>
     </Modal>
   );

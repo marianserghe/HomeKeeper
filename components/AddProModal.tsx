@@ -128,12 +128,11 @@ export function AddProModal({ visible, onClose, onSave, initialCategory, editing
       onRequestClose={onClose}
     >
       <KeyboardAvoidingView
-        style={styles.keyboardView}
+        style={[styles.keyboardView, { backgroundColor: colors.background }]}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
       >
-        <View style={{ flex: 1, backgroundColor: colors.background }}>
-          <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+        <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
             {/* Header */}
             <View style={[styles.header, { borderBottomColor: colors.border }]}>
               <Pressable onPress={onClose} style={styles.headerButton}>
@@ -267,7 +266,6 @@ export function AddProModal({ visible, onClose, onSave, initialCategory, editing
               </View>
             </ScrollView>
           </SafeAreaView>
-        </View>
       </KeyboardAvoidingView>
     </Modal>
   );
