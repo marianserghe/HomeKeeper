@@ -300,12 +300,10 @@ export default function HomeScreen() {
           </Pressable>
         </ScrollView>
 
-        {/* Home Health Card (Animated with Glow) */}
+        {/* Home Health Card */}
         <HomeHealthCard 
           score={healthScore} 
           overdueCount={overdueTasks.length}
-          completedCount={tasks.filter(t => t.status === 'completed').length}
-          totalCount={tasks.length}
           onPress={() => router.push('/tasks')}
         />
 
