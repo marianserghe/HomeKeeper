@@ -28,7 +28,7 @@ import {
 } from '../../lib/tasks';
 import { TaskTemplate } from '../../lib/taskTemplates';
 
-type FilterType = 'all' | 'overdue' | 'upcoming' | 'scheduled' | 'completed';
+type FilterType = 'all' | 'overdue' | 'upcoming' | 'completed';
 
 export default function TasksScreen() {
   const { colors } = useTheme();
@@ -116,13 +116,6 @@ export default function TasksScreen() {
   const groupedTasks = {
     overdue: overdueTasks,
     upcoming: upcomingTasks,
-    scheduled: tasks.filter(t => {
-      // Scheduled = not overdue, not upcoming, not in_progress, not completed
-      if (t.status === 'completed' || t.status === 'in_progress') return false;
-      if (overdueTasks.includes(t)) return false;
-      if (upcomingTasks.includes(t)) return false;
-      return true;
-    }),
     inProgress: tasks.filter(t => t.status === 'in_progress'),
     completed: tasks.filter(t => t.status === 'completed'),
   };
@@ -359,7 +352,6 @@ export default function TasksScreen() {
         <FilterButton type="all" label="All" count={tasks.length} />
         <FilterButton type="overdue" label="Overdue" count={groupedTasks.overdue.length} />
         <FilterButton type="upcoming" label="Upcoming" count={groupedTasks.upcoming.length} />
-        <FilterButton type="scheduled" label="Scheduled" count={groupedTasks.scheduled.length} />
         <FilterButton type="completed" label="Done" count={groupedTasks.completed.length} />
       </ScrollView>
 
@@ -369,7 +361,6 @@ export default function TasksScreen() {
           <>
             <TaskSection title="Overdue" tasks={groupedTasks.overdue} />
             <TaskSection title="Upcoming" tasks={groupedTasks.upcoming} />
-            <TaskSection title="Scheduled" tasks={groupedTasks.scheduled} />
             {groupedTasks.inProgress.length > 0 && (
               <TaskSection title="In Progress" tasks={groupedTasks.inProgress} />
             )}
