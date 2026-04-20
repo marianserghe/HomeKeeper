@@ -148,12 +148,8 @@ export default function SettingsScreen() {
                   <Pressable
                     key={property.id || index}
                     onLongPress={() => {
-                      // TODO: Enable drag mode
-                      Alert.alert(
-                        'Reorder Properties',
-                        'Long press and drag to reorder. For now, use the arrows below.',
-                        [{ text: 'OK' }]
-                      );
+                      // Drag-and-drop for horizontal chips is complex
+                      // Arrows below provide reorder functionality
                     }}
                     onPress={() => property.id && setActiveProperty(property.id)}
                     style={[

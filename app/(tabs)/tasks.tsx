@@ -411,7 +411,7 @@ export default function TasksScreen() {
               {
                 translateY: fabAnim.interpolate({
                   inputRange: [0, 1],
-                  outputRange: [0, -56],
+                  outputRange: [0, -72],
                 }),
               },
               {
@@ -447,7 +447,7 @@ export default function TasksScreen() {
               {
                 translateY: fabAnim.interpolate({
                   inputRange: [0, 1],
-                  outputRange: [0, -112],
+                  outputRange: [0, -128],
                 }),
               },
               {
