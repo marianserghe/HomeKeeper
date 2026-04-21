@@ -142,14 +142,14 @@ export default function SettingsScreen() {
                       disabled={index === 0}
                       style={[styles.reorderBtn, index === 0 && styles.reorderBtnDisabled]}
                     >
-                      <Ionicons name="chevron-up" size={16} color={index === 0 ? colors.textTertiary : colors.textSecondary} />
+                      <Ionicons name="chevron-up" size={16} color={index === 0 ? colors.textTertiary : colors.primary} />
                     </Pressable>
                     <Pressable
                       onPress={() => index < properties.length - 1 && reorderProperties(index, index + 1)}
                       disabled={index === properties.length - 1}
                       style={[styles.reorderBtn, index === properties.length - 1 && styles.reorderBtnDisabled]}
                     >
-                      <Ionicons name="chevron-down" size={16} color={index === properties.length - 1 ? colors.textTertiary : colors.textSecondary} />
+                      <Ionicons name="chevron-down" size={16} color={index === properties.length - 1 ? colors.textTertiary : colors.primary} />
                     </Pressable>
                   </View>
 
