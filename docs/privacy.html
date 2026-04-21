@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy — HomeKeeper</title>
+    <meta name="description" content="HomeKeeper Privacy Policy - How we handle your data">
+    <meta name="theme-color" content="#F59E0B">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="container nav-content">
+            <a href="/" class="logo">
+                <img src="logo.jpg" alt="HomeKeeper">
+                <span>HomeKeeper</span>
+            </a>
+            <div class="nav-links">
+                <a href="index.html#features">Features</a>
+                <a href="privacy.html">Privacy</a>
+                <a href="https://apps.apple.com/us/app/homekeeper/id000000000">Download</a>
+            </div>
+            <button class="hamburger" onclick="toggleMenu()">
+                <ion-icon name="menu-outline"></ion-icon>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+        <button class="close-btn" onclick="toggleMenu()">
+            <ion-icon name="close-outline"></ion-icon>
+        </button>
+        <a href="index.html#features" onclick="toggleMenu()">Features</a>
+        <a href="privacy.html" onclick="toggleMenu()">Privacy</a>
+        <a href="https://apps.apple.com/us/app/homekeeper/id000000000" onclick="toggleMenu()">Download</a>
+    </div>
+
+    <!-- Privacy Content -->
+    <section class="privacy-page">
+        <div class="container">
+            <h1>Privacy Policy</h1>
+            <p class="last-updated">Last updated: April 20, 2026</p>
+
+            <p>HomeKeeper is designed with privacy as a core principle. This policy explains how we handle your data.</p>
+
+            <h2>Data Storage</h2>
+            <p>HomeKeeper stores all your data <strong>locally on your device</strong>. We do not collect, transmit, or store your personal information on any external servers. Your tasks, inventory, property details, and photos remain entirely under your control.</p>
+
+            <h2>What We Don't Collect</h2>
+            <ul>
+                <li>No personal information (name, email, phone)</li>
+                <li>No property addresses or details</li>
+                <li>No task or inventory data</li>
+                <li>No photos or documents</li>
+                <li>No usage analytics or tracking</li>
+                <li>No advertising identifiers</li>
+            </ul>
+
+            <h2>Third-Party Services</h2>
+            <p>HomeKeeper uses the following third-party services to enhance functionality:</p>
+            
+            <h3>HERE Geocoding</h3>
+            <p>Used for address autocomplete and finding nearby contractors. Address queries are sent to HERE's API to provide suggestions. <a href="https://www.here.com/company/privacy" target="_blank">HERE Privacy Policy</a></p>
+
+            <h3>Yelp Fusion API</h3>
+            <p>Used to display contractor ratings and reviews when you search for pros. Search queries are sent to Yelp's API. <a href="https://www.yelp.com/static?p=privacy_policy" target="_blank">Yelp Privacy Policy</a></p>
+
+            <h3>Zillow (via Apify)</h3>
+            <p>Used to fetch home value estimates (Zestimates) for your properties. Address queries are sent to retrieve property values. <a href="https://www.zillow.com/z/corp/privacy/" target="_blank">Zillow Privacy Policy</a></p>
+
+            <h3>Apple Maps</h3>
+            <p>Used to display contractor locations on a map. Map data is provided by Apple's mapping service. <a href="https://www.apple.com/legal/privacy/" target="_blank">Apple Privacy Policy</a></p>
+
+            <h2>Your Responsibilities</h2>
+            <p>Since all data is stored locally on your device:</p>
+            <ul>
+                <li>You are responsible for creating regular backups using the Export feature</li>
+                <li>Data loss may occur if you delete the app or reset your device without backing up</li>
+                <li>We recommend exporting backups to a secure location regularly</li>
+            </ul>
+
+            <h2>Data Sharing</h2>
+            <p>We do not sell, rent, or share your data with any third parties. The only data transmitted from the app is what you explicitly request (e.g., searching for contractors, looking up home values).</p>
+
+            <h2>Children's Privacy</h2>
+            <p>HomeKeeper is not intended for children under 13. We do not knowingly collect any information from children.</p>
+
+            <h2>Changes to This Policy</h2>
+            <p>We may update this privacy policy from time to time. Any changes will be posted on this page with an updated revision date.</p>
+
+            <h2>Contact</h2>
+            <p>If you have questions about this privacy policy, please contact us at <a href="mailto:support@homekeeper.app">support@homekeeper.app</a></p>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <a href="/" class="logo">
+                    <img src="logo.jpg" alt="HomeKeeper">
+                    <span>HomeKeeper</span>
+                </a>
+            </div>
+            <div class="footer-links">
+                <a href="index.html#features">Features</a>
+                <a href="privacy.html">Privacy Policy</a>
+                <a href="mailto:support@homekeeper.app">Support</a>
+            </div>
+            <p class="footer-copy">© 2026 HomeKeeper. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        function toggleMenu() {
+            document.getElementById('mobileMenu').classList.toggle('active');
+        }
+    </script>
+</body>
+</html>
