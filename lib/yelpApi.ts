@@ -2,7 +2,7 @@
 // HOMEKEEPER - Yelp Fusion API Service
 // ============================================
 
-const YELP_API_KEY = '-NP80rN7xTAh67twUodS4cWxBYTYF2OAT-z0U-ZhzEC9MiXXIst4UJ5lrkEe63tnu-lJNP9nhV2AXAbmPnmnQMcPaEbB5Fl7dvLTQcZh3S5e3p8Ymjo1CmL9uTHiaXYx';
+const YELP_API_KEY = process.env.EXPO_PUBLIC_YELP_API_KEY;
 const YELP_BIZ_URL = 'https://api.yelp.com/v3/businesses';
 const YELP_SEARCH_URL = 'https://api.yelp.com/v3/businesses/search';
 

@@ -3,9 +3,9 @@
 // ============================================
 
 // Apify API configuration
-const APIFY_API_KEY = process.env.EXPO_PUBLIC_APIFY_API_KEY || '';
+const APIFY_API_KEY = process.env.EXPO_PUBLIC_APIFY_API_KEY;
 const APIFY_ACTOR_ID = 'axesso_data~zillow-search-by-address-scraper'; // Search by address
-const HERE_API_KEY = process.env.EXPO_PUBLIC_HERE_API_KEY || 'fOLsRJBzbQTclu5TbUbrgYA9xVwpclFzgKisf_meiJo';
+const HERE_API_KEY = process.env.EXPO_PUBLIC_HERE_API_KEY;
 
 // Address autocomplete result
 export interface AddressSuggestion {
@@ -17,6 +17,14 @@ export interface AddressSuggestion {
   country?: string;
 }
 
+// Property input for Zestimate lookup
+export interface PropertyInput {
+  address: string;
+  city: string;
+  state: string;
+  zip?: string;
+}
+
 /**
  * Get address suggestions using HERE Geocoding API
  */
@@ -24,35 +32,39 @@ export async function autocompleteAddress(query: string): Promise<AddressSuggest
   if (!query || query.length < 3) return [];
   
   try {
+    // Filter to US addresses only for better results
     const url = `https://autocomplete.search.hereapi.com/v1/autocomplete?` +
       `q=${encodeURIComponent(query)}` +
       `&limit=5` +
+      `&in=countryCode:USA` +
       `&apikey=${HERE_API_KEY}`;
     
+    console.log('Fetching autocomplete for:', query);
     const res = await fetch(url);
     const data = await res.json();
     
+    console.log('HERE API response:', JSON.stringify(data).slice(0, 500));
+    
     if (!data.items) return [];
     
-    return data.items.map((item: any) => ({
+    const results = data.items.map((item: any) => ({
       label: item.address.label,
-      street: item.address.street,
+      // Combine house number + street for full address
+      street: item.address.houseNumber && item.address.street 
+        ? `${item.address.houseNumber} ${item.address.street}`
+        : item.address.street,
       city: item.address.city,
-      state: item.address.state,
+      state: item.address.stateCode || item.address.state, // Use stateCode (CA) not state (California)
       postalCode: item.address.postalCode,
       country: item.address.countryCode,
     }));
+    
+    console.log('Parsed suggestions:', JSON.stringify(results));
+    return results;
   } catch (error) {
     console.error('Address autocomplete error:', error);
     return [];
   }
-}
-
-interface PropertyInput {
-  address: string;
-  city: string;
-  state: string;
-  zip?: string;
 }
 
 interface ZillowPropertyData {
@@ -123,9 +135,24 @@ export async function fetchZestimate(property: PropertyInput): Promise<ApifyRunR
 
   try {
     // Build the full address
-    const fullAddress = `${property.address}, ${property.city}, ${property.state} ${property.zip}`;
+    const fullAddress = `${property.address}, ${property.city}, ${property.state} ${property.zip || ''}`.trim();
     
     console.log('Searching for property:', fullAddress);
+
+    // Check if Apify API key is valid (must start with 'apify_api_')
+    if (!APIFY_API_KEY || !APIFY_API_KEY.startsWith('apify_api_')) {
+      console.warn('Invalid Apify API key format');
+      return {
+        zpid: '',
+        zestimate: null,
+        rentZestimate: null,
+        price: null,
+        zillowUrl: '',
+        lastUpdated: new Date().toISOString(),
+        confidence: 'low',
+        error: 'Zestimate requires valid API key',
+      };
+    }
 
     // Start the Apify actor with address search
     const runResponse = await fetch(
@@ -174,21 +201,6 @@ export async function fetchZestimate(property: PropertyInput): Promise<ApifyRunR
     
     console.log('=== ZILLOW API RESPONSE ===');
     console.log('Full response:', JSON.stringify(propertyData, null, 2));
-    console.log('=== TOP LEVEL FIELDS ===');
-    console.log('zestimate:', propertyData.zestimate);
-    console.log('price:', propertyData.price);
-    console.log('rentZestimate:', propertyData.rentZestimate);
-    console.log('bedrooms:', propertyData.bedrooms);
-    console.log('bathrooms:', propertyData.bathrooms);
-    console.log('livingArea:', propertyData.livingArea);
-    console.log('yearBuilt:', propertyData.yearBuilt);
-    console.log('homeType:', propertyData.homeType);
-    
-    // Check for nested zestimate data
-    console.log('=== NESTED FIELDS ===');
-    console.log('hdpData:', JSON.stringify(propertyData.hdpData, null, 2));
-    console.log('hdpData.homeInfo:', JSON.stringify(propertyData.hdpData?.homeInfo, null, 2));
-    console.log('resoFacts:', JSON.stringify(propertyData.resoFacts, null, 2));
 
     // Check for invalid address
     if (propertyData.statusMessage === 'Invalid address' || propertyData.statusCode !== 200) {
@@ -405,9 +417,6 @@ async function pollForResults(datasetId: string, timeoutMs: number): Promise<Zil
   return [];
 }
 
-/**
- * Format Zestimate for display
- */
 export function formatZestimate(value: number | null | undefined): string {
   if (!value) return 'N/A';
   

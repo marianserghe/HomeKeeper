@@ -227,12 +227,12 @@ export default function TasksScreen() {
       )}
     </Pressable>
   );
-
-  // Swipeable Task Item using Swipeable from react-native-gesture-handler
+// Swipeable Task Item using Swipeable from react-native-gesture-handler
   const TaskItem = ({ task }: { task: Task }) => {
     const statusColor = getStatusColor(task.status, colors);
     const priorityColor = getPriorityColor(task.priority, colors);
     const swipeableRef = useRef<Swipeable>(null);
+    const isCompleted = task.status === 'completed';
     
     const handleComplete = () => {
       swipeableRef.current?.close();
@@ -245,9 +245,10 @@ export default function TasksScreen() {
     };
     
     const renderRightActions = (_progress: any, dragX: any) => {
+      const swipeWidth = isCompleted ? 80 : 120;
       const translateX = dragX.interpolate({
-        inputRange: [-120, 0],
-        outputRange: [0, 120],
+        inputRange: [-swipeWidth, 0],
+        outputRange: [0, swipeWidth],
         extrapolate: 'clamp',
       });
 
@@ -258,9 +259,11 @@ export default function TasksScreen() {
             { transform: [{ translateX }] }
           ]}
         >
-          <Pressable onPress={handleComplete} style={[styles.swipeAction, styles.swipeActionComplete, { backgroundColor: colors.success }]}>
-            <Ionicons name="checkmark" size={24} color="white" />
-          </Pressable>
+          {!isCompleted && (
+            <Pressable onPress={handleComplete} style={[styles.swipeAction, styles.swipeActionComplete, { backgroundColor: colors.success }]}>
+              <Ionicons name="checkmark" size={24} color="white" />
+            </Pressable>
+          )}
           <Pressable onPress={handleDelete} style={[styles.swipeAction, styles.swipeActionDelete, { backgroundColor: colors.error }]}>
             <Ionicons name="trash" size={22} color="white" />
           </Pressable>

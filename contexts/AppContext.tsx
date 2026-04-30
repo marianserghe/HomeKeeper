@@ -71,6 +71,8 @@ export interface HomeInfo {
 }
 
 interface AppState {
+  loading: boolean;
+  onboardingComplete: boolean;
   tasks: Task[];
   pros: Pro[];
   inventory: InventoryItem[];
@@ -102,10 +104,11 @@ interface AppContextType extends AppState {
   deleteInventoryItem: (id: string) => void;
   
   // Property actions
-  addProperty: (property: Omit<HomeInfo, 'id'>) => void;
+  addProperty: (property: Omit<HomeInfo, 'id'>) => string;
   updateProperty: (id: string, updates: Partial<HomeInfo>) => void;
   deleteProperty: (id: string) => void;
   setActiveProperty: (id: string) => void;
+  completeOnboarding: () => void;
   reorderProperties: (fromIndex: number, toIndex: number) => void;
   
   // Home info (legacy compatibility)
@@ -140,6 +143,8 @@ const generateId = () => {
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppState>({
+    loading: true,
+    onboardingComplete: false,
     tasks: [],
     pros: [],
     inventory: [],
@@ -439,6 +444,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setState(prev => ({ ...prev, activePropertyId: id }));
   };
 
+  // Complete onboarding
+  const completeOnboarding = () => {
+    setState(prev => ({ ...prev, onboardingComplete: true }));
+  };
+
   // Home info (legacy compatibility - updates active property)
   const updateHomeInfo = (info: Partial<HomeInfo>) => {
     if (state.activePropertyId) {
@@ -517,28 +527,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
           }));
         }
       } else {
-        // First run: Create a sample property and generate tasks for it
-        const propertyId = generateId();
-        const sampleProperty: HomeInfo = {
-          id: propertyId,
-          name: 'My Home',
-          address: '123 Main St',
-          city: 'Waldwick',
-          state: 'NJ',
-          zip: '07463',
-        };
-        const { generateSampleTasks } = require('../lib/tasks');
-        const sampleTasks = generateSampleTasks(propertyId);
-        
-        setState(prev => ({
-          ...prev,
-          properties: [sampleProperty],
-          activePropertyId: propertyId,
-          tasks: sampleTasks,
-        }));
       }
     } catch (error) {
       console.error('Error loading data:', error);
+    } finally {
+      setState(prev => ({ ...prev, loading: false }));
     }
   };
 
@@ -601,6 +594,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     updateProperty,
     deleteProperty,
     setActiveProperty,
+    completeOnboarding,
     reorderProperties,
     // Legacy
     updateHomeInfo,

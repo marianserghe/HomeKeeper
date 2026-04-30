@@ -46,25 +46,26 @@ export function HomeHealthCard({ score, overdueCount, onPress }: HomeHealthCardP
   const scoreColor = getScoreColor(score);
   const gradientColors = getGradientColors(score);
 
-  // Pulse animation for glow effect
-  useEffect(() => {
-    const pulse = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 2000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 0,
-          duration: 2000,
-          useNativeDriver: true,
-        }),
-      ])
-    );
-    pulse.start();
-    return () => pulse.stop();
-  }, [pulseAnim]);
+  // Pulse animation for glow effect - DISABLED to prevent screen wake lock
+  // Continuous animations prevent iOS from sleeping
+  // useEffect(() => {
+  //   const pulse = Animated.loop(
+  //     Animated.sequence([
+  //       Animated.timing(pulseAnim, {
+  //         toValue: 1,
+  //         duration: 2000,
+  //         useNativeDriver: true,
+  //       }),
+  //       Animated.timing(pulseAnim, {
+  //         toValue: 0,
+  //         duration: 2000,
+  //         useNativeDriver: true,
+  //       }),
+  //     ])
+  //   );
+  //   pulse.start();
+  //   return () => pulse.stop();
+  // }, [pulseAnim]);
 
   // Animate on mount
   useEffect(() => {
@@ -214,8 +215,9 @@ const styles = StyleSheet.create({
     fontSize: 128,
     fontFamily: 'BebasNeue',
     fontWeight: '400',
-    letterSpacing: -2,
+    letterSpacing: 0,
     lineHeight: 128,
+    fontVariant: ['tabular-nums'],
   },
   scoreLabel: {
     fontSize: 13,

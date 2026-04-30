@@ -2,10 +2,12 @@
 // HOMEKEEPER - Contact Support Modal
 // ============================================
 
-import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Alert, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
+import { sendSupportEmail } from '../lib/email';
 
 interface ContactSupportModalProps {
   visible: boolean;
@@ -16,23 +18,47 @@ export function ContactSupportModal({ visible, onClose }: ContactSupportModalPro
   const { colors } = useTheme();
   const styles = createStyles(colors);
 
-  // Note: In a real implementation, you'd use useState for email and message
-  // This is a simplified version that just opens email client
-  const handleEmailPress = () => {
-    Alert.alert(
-      'Contact Support',
-      'This will open your email client. Send your message to:\n\nsupport@homekeeper.app',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Open Email', 
-          onPress: () => {
-            // In a real app, use Linking.openURL with mailto
-            Alert.alert('Email Support', 'Please send your message to support@homekeeper.app');
-          }
-        }
-      ]
-    );
+  const [email, setEmail] = useState('');
+  const [message, setMessage] = useState('');
+  const [sending, setSending] = useState(false);
+
+  const handleSend = async () => {
+    if (!email.trim()) {
+      Alert.alert('Missing Email', 'Please enter your email address.');
+      return;
+    }
+    if (!message.trim()) {
+      Alert.alert('Missing Message', 'Please enter your message.');
+      return;
+    }
+
+    setSending(true);
+    try {
+      const result = await sendSupportEmail({
+        userEmail: email.trim(),
+        message: message.trim(),
+      });
+
+      if (result.success) {
+        setEmail('');
+        setMessage('');
+        onClose();
+        Alert.alert('Message Sent', "Thanks for reaching out! We'll respond within 24 hours.");
+      } else {
+        Alert.alert('Error', 'Failed to send message. Please try again or email support@rentkeeper.co directly.');
+      }
+    } catch (error) {
+      console.error('Support message error:', error);
+      Alert.alert('Error', 'Failed to send message. Please try again or email support@rentkeeper.co directly.');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleClose = () => {
+    setEmail('');
+    setMessage('');
+    onClose();
   };
 
   return (
@@ -40,119 +66,87 @@ export function ContactSupportModal({ visible, onClose }: ContactSupportModalPro
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"
-      onRequestClose={onClose}
+      onRequestClose={handleClose}
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
+        style={{ flex: 1, backgroundColor: colors.background }}
       >
         <View style={styles.container}>
           {/* Header */}
           <View style={styles.header}>
             <Text style={styles.title}>Contact Support</Text>
-            <Pressable onPress={onClose} style={styles.closeButton}>
+            <Pressable onPress={handleClose} style={styles.closeButton}>
               <Ionicons name="close" size={24} color={colors.textPrimary} />
             </Pressable>
           </View>
 
-          <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+          <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer} keyboardShouldPersistTaps="handled">
             {/* Introduction */}
             <Text style={styles.intro}>
-              Having issues? We're here to help. Choose how you'd like to reach us:
+              Having issues? Send us a message and we'll get back to you within 24 hours.
             </Text>
 
-            {/* Email Support */}
-            <Pressable style={styles.contactCard} onPress={handleEmailPress}>
-              <View style={styles.cardHeader}>
-                <View style={[styles.iconBadge, { backgroundColor: colors.primary + '20' }]}>
-                  <Ionicons name="mail-outline" size={24} color={colors.primary} />
-                </View>
-                <View style={styles.cardContent}>
-                  <Text style={styles.cardTitle}>Email Support</Text>
-                  <Text style={styles.cardDescription}>
-                    Send us a detailed message. We typically respond within 24-48 hours.
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.cardFooter}>
-                <Text style={styles.emailAddress}>support@homekeeper.app</Text>
-                <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
-              </View>
-            </Pressable>
+            {/* Email Input */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Your Email</Text>
+              <TextInput
+                style={styles.input}
+                value={email}
+                onChangeText={setEmail}
+                placeholder="Enter your email"
+                placeholderTextColor={colors.textTertiary}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+            </View>
 
-            {/* GitHub */}
-            <Pressable 
-              style={styles.contactCard} 
-              onPress={() => Alert.alert('Report Bug', 'Please open an issue on GitHub:\n\ngithub.com/marianserghe/HomeKeeper/issues')}
+            {/* Message Input */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Message</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                value={message}
+                onChangeText={setMessage}
+                placeholder="Describe your issue or question..."
+                placeholderTextColor={colors.textTertiary}
+                multiline
+                numberOfLines={6}
+                textAlignVertical="top"
+              />
+            </View>
+
+            {/* Send Button */}
+            <Pressable
+              style={[styles.sendButton, sending && styles.sendButtonDisabled]}
+              onPress={handleSend}
+              disabled={sending}
             >
-              <View style={styles.cardHeader}>
-                <View style={[styles.iconBadge, { backgroundColor: colors.success + '20' }]}>
-                  <Ionicons name="logo-github" size={24} color={colors.success} />
-                </View>
-                <View style={styles.cardContent}>
-                  <Text style={styles.cardTitle}>Report a Bug</Text>
-                  <Text style={styles.cardDescription}>
-                    Found a bug? Open an issue on GitHub for faster resolution.
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.cardFooter}>
-                <Text style={styles.emailAddress}>github.com/marianserghe/HomeKeeper</Text>
-                <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
-              </View>
+              {sending ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <Text style={styles.sendButtonText}>Send Message</Text>
+              )}
             </Pressable>
 
-            {/* Common Issues */}
-            <Text style={styles.sectionTitle}>Common Issues</Text>
-            <View style={styles.issuesCard}>
-              <View style={styles.issueRow}>
-                <Ionicons name="help-circle-outline" size={20} color={colors.primary} />
-                <View style={styles.issueContent}>
-                  <Text style={styles.issueTitle}>App won't load?</Text>
-                  <Text style={styles.issueText}>Try closing and reopening the app. Check your internet connection for Pro search features.</Text>
-                </View>
-              </View>
-              <View style={[styles.divider, { backgroundColor: colors.border }]} />
-              <View style={styles.issueRow}>
-                <Ionicons name="help-circle-outline" size={20} color={colors.primary} />
-                <View style={styles.issueContent}>
-                  <Text style={styles.issueTitle}>Data missing?</Text>
-                  <Text style={styles.issueText}>Your data is stored locally. Check Settings → Data → Export to create a backup.</Text>
-                </View>
-              </View>
-              <View style={[styles.divider, { backgroundColor: colors.border }]} />
-              <View style={styles.issueRow}>
-                <Ionicons name="help-circle-outline" size={20} color={colors.primary} />
-                <View style={styles.issueContent}>
-                  <Text style={styles.issueTitle}>Notifications not working?</Text>
-                  <Text style={styles.issueText}>Make sure Task Reminders are enabled in Settings and notification permissions are granted.</Text>
-                </View>
-              </View>
-              <View style={[styles.divider, { backgroundColor: colors.border }]} />
-              <View style={styles.issueRow}>
-                <Ionicons name="help-circle-outline" size={20} color={colors.primary} />
-                <View style={styles.issueContent}>
-                  <Text style={styles.issueTitle}>Zestimate not loading?</Text>
-                  <Text style={styles.issueText}>Make sure your property has a valid address. Zestimate requires an address to fetch home value.</Text>
-                </View>
+            {/* Alternative Contact */}
+            <View style={styles.alternatives}>
+              <Text style={styles.alternativesLabel}>Or reach us directly:</Text>
+              <View style={styles.alternativeRow}>
+                <Ionicons name="mail-outline" size={16} color={colors.textSecondary} />
+                <Text style={styles.alternativeEmail}>support@rentkeeper.co</Text>
               </View>
             </View>
 
             {/* Response Time */}
             <View style={styles.responseCard}>
-              <Ionicons name="time-outline" size={20} color={colors.info} />
+              <Ionicons name="time-outline" size={18} color={colors.info} />
               <Text style={styles.responseText}>
-                Typical response time: 24-48 hours on business days
+                Typical response time: 24 hours on business days
               </Text>
             </View>
           </ScrollView>
-
-          {/* Footer */}
-          <View style={styles.footer}>
-            <Pressable style={styles.doneButton} onPress={onClose}>
-              <Text style={styles.doneButtonText}>Done</Text>
-            </Pressable>
-          </View>
         </View>
       </KeyboardAvoidingView>
     </Modal>
@@ -187,95 +181,69 @@ function createStyles(colors: any) {
     },
     contentContainer: {
       padding: 20,
-      paddingBottom: 40,
     },
     intro: {
       fontSize: 15,
       lineHeight: 22,
       color: colors.textSecondary,
+      marginBottom: 24,
+    },
+    inputGroup: {
       marginBottom: 20,
     },
-    contactCard: {
+    inputLabel: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.textPrimary,
+      marginBottom: 8,
+    },
+    input: {
       backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
       borderRadius: 12,
-      padding: 16,
-      marginBottom: 12,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      fontSize: 16,
+      color: colors.textPrimary,
     },
-    cardHeader: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: 14,
+    textArea: {
+      height: 140,
+      paddingTop: 14,
     },
-    iconBadge: {
-      width: 44,
-      height: 44,
-      borderRadius: 22,
+    sendButton: {
+      backgroundColor: colors.primary,
+      borderRadius: 12,
+      paddingVertical: 16,
       alignItems: 'center',
-      justifyContent: 'center',
+      marginBottom: 24,
     },
-    cardContent: {
-      flex: 1,
+    sendButtonDisabled: {
+      opacity: 0.6,
     },
-    cardTitle: {
+    sendButtonText: {
       fontSize: 16,
       fontWeight: '600',
-      color: colors.textPrimary,
-      marginBottom: 4,
+      color: '#fff',
     },
-    cardDescription: {
-      fontSize: 14,
-      lineHeight: 20,
+    alternatives: {
+      alignItems: 'center',
+      marginBottom: 16,
+    },
+    alternativesLabel: {
+      fontSize: 13,
       color: colors.textSecondary,
+      marginBottom: 8,
     },
-    cardFooter: {
+    alternativeRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between',
-      marginTop: 12,
-      paddingTop: 12,
-      borderTopWidth: 1,
-      borderTopColor: colors.border,
+      gap: 6,
     },
-    emailAddress: {
-      fontSize: 13,
+    alternativeEmail: {
+      fontSize: 14,
       color: colors.primary,
       fontWeight: '500',
-    },
-    sectionTitle: {
-      fontSize: 18,
-      fontWeight: '600',
-      color: colors.textPrimary,
-      marginTop: 24,
-      marginBottom: 12,
-    },
-    issuesCard: {
-      backgroundColor: colors.surface,
-      borderRadius: 12,
-      overflow: 'hidden',
-    },
-    issueRow: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: 12,
-      padding: 16,
-    },
-    issueContent: {
-      flex: 1,
-    },
-    issueTitle: {
-      fontSize: 15,
-      fontWeight: '600',
-      color: colors.textPrimary,
-      marginBottom: 4,
-    },
-    issueText: {
-      fontSize: 13,
-      lineHeight: 18,
-      color: colors.textSecondary,
-    },
-    divider: {
-      height: 1,
-      marginLeft: 48,
     },
     responseCard: {
       flexDirection: 'row',
@@ -284,29 +252,12 @@ function createStyles(colors: any) {
       backgroundColor: colors.info + '15',
       borderRadius: 10,
       padding: 14,
-      marginTop: 20,
     },
     responseText: {
       flex: 1,
       fontSize: 14,
       color: colors.info,
       fontWeight: '500',
-    },
-    footer: {
-      padding: 20,
-      borderTopWidth: 1,
-      borderTopColor: colors.border,
-    },
-    doneButton: {
-      backgroundColor: colors.primary,
-      borderRadius: 12,
-      paddingVertical: 14,
-      alignItems: 'center',
-    },
-    doneButtonText: {
-      fontSize: 16,
-      fontWeight: '600',
-      color: '#fff',
     },
   });
 }

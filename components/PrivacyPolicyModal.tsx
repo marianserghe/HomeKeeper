@@ -110,10 +110,10 @@ export function PrivacyPolicyModal({ visible, onClose }: PrivacyPolicyModalProps
           </Text>
           <Pressable 
             style={styles.contactButton}
-            onPress={() => Linking.openURL('mailto:support@homekeeper.app')}
+            onPress={() => Linking.openURL('mailto:support@rentkeeper.co')}
           >
             <Ionicons name="mail-outline" size={20} color={colors.primary} />
-            <Text style={styles.contactText}>support@homekeeper.app</Text>
+            <Text style={styles.contactText}>support@rentkeeper.co</Text>
           </Pressable>
 
           {/* Disclaimer */}

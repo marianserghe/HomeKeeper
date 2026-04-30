@@ -6,9 +6,11 @@ import {
   ScrollView,
   Pressable,
   Modal,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTheme } from '../contexts/ThemeContext';
 import { TASK_TEMPLATES, TaskTemplate, TASK_TEMPLATES_BY_FREQUENCY } from '../lib/taskTemplates';
 import { TaskCategoryLabels } from '../lib/tasks';
@@ -16,13 +18,16 @@ import { TaskCategoryLabels } from '../lib/tasks';
 interface TaskTemplatesModalProps {
   visible: boolean;
   onClose: () => void;
-  onAddTemplate: (template: TaskTemplate) => void;
+  onAddTemplate: (template: TaskTemplate, dueDate: string) => void;
   existingTemplateIds: string[];
 }
 
 export function TaskTemplatesModal({ visible, onClose, onAddTemplate, existingTemplateIds }: TaskTemplatesModalProps) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const [selectedFrequency, setSelectedFrequency] = useState<string>('all');
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<TaskTemplate | null>(null);
+  const [tempDate, setTempDate] = useState(new Date());
 
   const frequencies = [
     { key: 'all', label: 'All' },
@@ -37,6 +42,47 @@ export function TaskTemplatesModal({ visible, onClose, onAddTemplate, existingTe
     : TASK_TEMPLATES_BY_FREQUENCY[selectedFrequency as keyof typeof TASK_TEMPLATES_BY_FREQUENCY] || [];
 
   const isAdded = (templateId: string) => existingTemplateIds.includes(templateId);
+
+  const formatDateLocal = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const handleAddPress = (template: TaskTemplate) => {
+    if (isAdded(template.id)) return;
+    setSelectedTemplate(template);
+    setTempDate(new Date());
+    setShowDatePicker(true);
+  };
+
+  const handleDateConfirm = () => {
+    if (selectedTemplate) {
+      onAddTemplate(selectedTemplate, formatDateLocal(tempDate));
+    }
+    setShowDatePicker(false);
+    setSelectedTemplate(null);
+  };
+
+  const handleDateCancel = () => {
+    setShowDatePicker(false);
+    setSelectedTemplate(null);
+  };
+
+  const handleDateChange = (event: any, selectedDate?: Date) => {
+    if (Platform.OS === 'ios') {
+      if (selectedDate) {
+        setTempDate(selectedDate);
+      }
+    } else {
+      setShowDatePicker(false);
+      if (event.type === 'set' && selectedDate && selectedTemplate) {
+        onAddTemplate(selectedTemplate, formatDateLocal(selectedDate));
+        setSelectedTemplate(null);
+      }
+    }
+  };
 
   return (
     <Modal
@@ -151,7 +197,7 @@ export function TaskTemplatesModal({ visible, onClose, onAddTemplate, existingTe
                       styles.addButton,
                       { backgroundColor: added ? colors.gray300 : colors.primary },
                     ]}
-                    onPress={() => !added && onAddTemplate(template)}
+                    onPress={() => handleAddPress(template)}
                     disabled={added}
                   >
                     <Text style={[styles.addButtonText, { color: colors.white }]}>
@@ -163,6 +209,55 @@ export function TaskTemplatesModal({ visible, onClose, onAddTemplate, existingTe
             );
           })}
         </ScrollView>
+
+        {/* Date Picker Modal for iOS */}
+        {Platform.OS === 'ios' && showDatePicker && selectedTemplate && (
+          <Modal
+            visible={showDatePicker}
+            transparent
+            animationType="slide"
+            onRequestClose={handleDateCancel}
+          >
+            <View style={styles.datePickerOverlay}>
+              <Pressable style={styles.datePickerBackdrop} onPress={handleDateCancel} />
+              <View style={[styles.datePickerContent, { backgroundColor: colors.surface }]}>
+                <View style={[styles.datePickerHeader, { borderBottomColor: colors.border }]}>
+                  <Pressable onPress={handleDateCancel} style={styles.datePickerButton}>
+                    <Text style={styles.datePickerCancel}>Cancel</Text>
+                  </Pressable>
+                  <Text style={[styles.datePickerTitle, { color: colors.textPrimary }]}>
+                    Due Date
+                  </Text>
+                  <Pressable onPress={handleDateConfirm} style={styles.datePickerButton}>
+                    <Text style={[styles.datePickerConfirm, { color: colors.primary }]}>Add</Text>
+                  </Pressable>
+                </View>
+                <View style={styles.datePickerContainer}>
+                  <DateTimePicker
+                    value={tempDate}
+                    mode="date"
+                    display="inline"
+                    onChange={handleDateChange}
+                    minimumDate={new Date()}
+                    themeVariant={isDark ? 'dark' : 'light'}
+                    accentColor={colors.primary}
+                  />
+                </View>
+              </View>
+            </View>
+          </Modal>
+        )}
+
+        {/* Date Picker for Android */}
+        {Platform.OS === 'android' && showDatePicker && (
+          <DateTimePicker
+            value={tempDate}
+            mode="date"
+            display="default"
+            onChange={handleDateChange}
+            minimumDate={new Date()}
+          />
+        )}
       </SafeAreaView>
     </Modal>
   );
@@ -191,22 +286,22 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   filterScroll: {
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.1)',
+    maxHeight: 44,
   },
   filterContent: {
-    padding: 16,
-    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 6,
     flexDirection: 'row',
   },
   filterChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
     borderWidth: 1,
   },
   filterText: {
-    fontSize: 14,
+    fontSize: 13,
   },
   list: {
     flex: 1,
@@ -280,5 +375,46 @@ const styles = StyleSheet.create({
   addButtonText: {
     fontSize: 14,
     fontWeight: '600',
+  },
+  datePickerOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  datePickerBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  datePickerContent: {
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    paddingBottom: 34,
+  },
+  datePickerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  datePickerButton: {
+    padding: 8,
+    minWidth: 50,
+  },
+  datePickerCancel: {
+    fontSize: 16,
+    color: '#8e8e93',
+  },
+  datePickerTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  datePickerConfirm: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  datePickerContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
   },
 });

@@ -167,8 +167,7 @@ export function TermsOfServiceModal({ visible, onClose }: TermsOfServiceModalPro
           </Text>
           <View style={styles.card}>
             <Text style={styles.cardText}>
-              Email: support@homekeeper.app{'\n'}
-              GitHub: github.com/marianserghe/HomeKeeper
+              Email: support@rentkeeper.co
             </Text>
           </View>
         </ScrollView>

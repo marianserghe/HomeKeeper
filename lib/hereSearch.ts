@@ -2,7 +2,7 @@
 // HOMEKEEPER - HERE API Search Service
 // ============================================
 
-const HERE_API_KEY = 'fOLsRJBzbQTclu5TbUbrgYA9xVwpclFzgKisf_meiJo';
+const HERE_API_KEY = process.env.EXPO_PUBLIC_HERE_API_KEY;
 const DISCOVER_URL = 'https://discover.search.hereapi.com/v1/discover';
 const BROWSE_URL = 'https://browse.search.hereapi.com/v1/browse';
 const GEOCODE_URL = 'https://geocode.search.hereapi.com/v1/geocode';
@@ -67,27 +67,38 @@ export async function searchNearby(
   const allResults: HerePlace[] = [];
   const seenIds = new Set<string>();
   
-  // Add results helper (dedupe)
+  // Add results helper (dedupe and ensure distance)
   const addResults = (items: HerePlace[]) => {
     for (const item of items) {
       if (!seenIds.has(item.id)) {
         seenIds.add(item.id);
+        // Calculate distance if not provided by API
+        if (!item.distance) {
+          const R = 6371e3; // Earth radius in meters
+          const φ1 = latitude * Math.PI / 180;
+          const φ2 = item.position.lat * Math.PI / 180;
+          const Δφ = (item.position.lat - latitude) * Math.PI / 180;
+          const Δλ = (item.position.lng - longitude) * Math.PI / 180;
+          const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2) * Math.sin(Δλ/2);
+          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+          item.distance = R * c;
+        }
         allResults.push(item);
       }
     }
   };
   
-  // Search terms to try - balanced between specific and general
+  // Search terms to try - broader search for better results
   const searchTerms: Record<string, string[]> = {
-    'handyman': ['handyman', 'handyman service', 'home repair'],
-    'plumber': ['plumber', 'plumbing service'],
-    'electrician': ['electrician', 'electrical contractor'],
-    'hvac': ['hvac', 'hvac service', 'air conditioning', 'heating and cooling'],
-    'landscaper': ['landscaping', 'lawn care', 'landscaper'],
-    'cleaner': ['cleaning service', 'house cleaning', 'maid'],
-    'pest': ['pest control', 'exterminator'],
-    'roofer': ['roofing', 'roofer', 'roofing contractor'],
-    'painter': ['painter', 'painting service', 'house painting'],
+    'handyman': ['handyman', 'handyman service', 'home repair', 'contractor', 'home improvement'],
+    'plumber': ['plumber', 'plumbing service', 'plumbing contractor', 'plumbing repair'],
+    'electrician': ['electrician', 'electrical contractor', 'electrical service', 'electric', 'licensed electrician'],
+    'hvac': ['hvac', 'hvac service', 'air conditioning', 'heating and cooling', 'ac repair', 'heating repair'],
+    'landscaper': ['landscaping', 'lawn care', 'landscaper', 'lawn service', 'garden service', 'yard maintenance'],
+    'cleaner': ['cleaning service', 'house cleaning', 'maid', 'cleaning', 'home cleaning'],
+    'pest': ['pest control', 'exterminator', 'pest removal', 'bug control'],
+    'roofer': ['roofing', 'roofer', 'roofing contractor', 'roof repair', 'roofing service'],
+    'painter': ['painter', 'painting service', 'house painting', 'painting contractor', 'interior painting', 'exterior painting'],
   };
   
   const queryLower = query.toLowerCase();

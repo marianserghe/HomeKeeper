@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, Pressable, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TextInput, Pressable, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity, Keyboard } from 'react-native';
 import { useTheme } from '../contexts/ThemeContext';
 import { HomeInfo } from '../contexts/AppContext';
 import { geocodeAddress } from '../lib/hereSearch';
+import { autocompleteAddress, AddressSuggestion } from '../lib/zestimate';
 
 interface AddPropertyModalProps {
   visible: boolean;
@@ -22,6 +23,8 @@ export function AddPropertyModal({ visible, onClose, onSave, initialProperty }: 
   const [purchasePrice, setPurchasePrice] = useState('');
   const [squareFeet, setSquareFeet] = useState('');
   const [yearBuilt, setYearBuilt] = useState('');
+  const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   // Populate form when initialProperty changes
   useEffect(() => {
@@ -35,7 +38,6 @@ export function AddPropertyModal({ visible, onClose, onSave, initialProperty }: 
       setSquareFeet(initialProperty.squareFeet?.toString() || '');
       setYearBuilt(initialProperty.yearBuilt?.toString() || '');
     } else {
-      // Reset form for new property
       setName('');
       setAddress('');
       setCity('');
@@ -45,16 +47,53 @@ export function AddPropertyModal({ visible, onClose, onSave, initialProperty }: 
       setSquareFeet('');
       setYearBuilt('');
     }
+    setSuggestions([]);
+    setShowSuggestions(false);
   }, [initialProperty]);
+
+  // Address autocomplete
+  useEffect(() => {
+    if (!address || address.length < 3) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    const timeout = setTimeout(async () => {
+      try {
+        const results = await autocompleteAddress(address);
+        setSuggestions(results);
+        setShowSuggestions(results.length > 0);
+      } catch (e) {
+        console.error('Autocomplete error:', e);
+        setSuggestions([]);
+      }
+    }, 300);
+
+    return () => clearTimeout(timeout);
+  }, [address]);
+
+  const handleSelectSuggestion = (suggestion: AddressSuggestion) => {
+    console.log('=== SUGGESTION TAPPED ===');
+    
+    // Hide suggestions immediately
+    setShowSuggestions(false);
+    setSuggestions([]);
+    Keyboard.dismiss();
+    
+    // Set all values
+    setAddress(suggestion.street || suggestion.label.split(',')[0] || '');
+    if (suggestion.city) setCity(suggestion.city);
+    if (suggestion.state) setState(suggestion.state);
+    if (suggestion.postalCode) setZip(suggestion.postalCode);
+  };
 
   const handleSave = async () => {
     // Geocode the address to get coordinates for climate zone detection
     let coords = null;
     if (zip.trim()) {
-      // Try ZIP first (works for geocodeAddress)
       coords = await geocodeAddress(zip.trim());
       if (!coords && address.trim() && city.trim()) {
-        // If ZIP failed, try full address
         const fullAddress = `${address.trim()}, ${city.trim()}, ${state.trim() || 'NJ'} ${zip.trim()}`;
         coords = await geocodeAddress(fullAddress);
       }
@@ -82,6 +121,8 @@ export function AddPropertyModal({ visible, onClose, onSave, initialProperty }: 
     setPurchasePrice('');
     setSquareFeet('');
     setYearBuilt('');
+    setSuggestions([]);
+    setShowSuggestions(false);
     
     onClose();
   };
@@ -91,43 +132,77 @@ export function AddPropertyModal({ visible, onClose, onSave, initialProperty }: 
   if (!visible) return null;
 
   return (
-    <Pressable style={styles.overlay} onPress={onClose}>
+    <View style={styles.overlay}>
+      <Pressable style={styles.backdrop} onPress={onClose} />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
-        <Pressable style={[styles.modal, { backgroundColor: colors.surface }]} onPress={() => {}}>
+        <View style={[styles.modal, { backgroundColor: colors.surface }]}>
+          {/* Header */}
           <View style={styles.header}>
-            <Text style={[styles.title, { color: colors.textPrimary }]}>{initialProperty ? 'Edit Property' : 'Add Property'}</Text>
-            <Pressable onPress={onClose}>
-              <Text style={[styles.cancelBtn, { color: colors.textSecondary }]}>Cancel</Text>
+            <Text style={[styles.title, { color: colors.textPrimary }]}>
+              {initialProperty ? 'Edit Property' : 'Add Property'}
+            </Text>
+            <Pressable onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Text style={[styles.cancelBtn, { color: colors.primary }]}>Cancel</Text>
             </Pressable>
           </View>
 
-          <ScrollView style={styles.form} showsVerticalScrollIndicator={false}>
-            {/* Property Name (Optional) */}
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Property Name (Optional)</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: colors.background, color: colors.textPrimary, borderColor: colors.border }]}
-              value={name}
-              onChangeText={setName}
-              placeholder="e.g., Main Home, Beach House"
-              placeholderTextColor={colors.textTertiary}
-            />
+          <ScrollView style={styles.form} showsVerticalScrollIndicator={false} nestedScrollEnabled keyboardShouldPersistTaps="handled">
+            {/* Property Name */}
+            <View style={styles.field}>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Property Name (Optional)</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: colors.background, color: colors.textPrimary, borderColor: colors.border }]}
+                value={name}
+                onChangeText={setName}
+                placeholder="e.g., Main Home, Beach House"
+                placeholderTextColor={colors.textTertiary}
+                autoCapitalize="words"
+              />
+            </View>
 
-            {/* Address */}
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Street Address *</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: colors.background, color: colors.textPrimary, borderColor: colors.border }]}
-              value={address}
-              onChangeText={setAddress}
-              placeholder="123 Main St"
-              placeholderTextColor={colors.textTertiary}
-            />
+            {/* Address with autocomplete */}
+            <View style={styles.field}>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Street Address *</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: colors.background, color: colors.textPrimary, borderColor: colors.border }]}
+                value={address}
+                onChangeText={setAddress}
+                placeholder="Start typing address..."
+                placeholderTextColor={colors.textTertiary}
+              />
+            </View>
 
-            {/* City, State, ZIP */}
+            {/* Suggestions Dropdown - rendered outside modal for proper z-index */}
+            {showSuggestions && suggestions.length > 0 && (
+              <View style={[styles.suggestionsContainer, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                <ScrollView nestedScrollEnabled keyboardShouldPersistTaps="handled" style={styles.suggestionsScroll}>
+                  {suggestions.map((item, index) => (
+                    <TouchableOpacity
+                      key={item.label + index}
+                      style={styles.suggestionItem}
+                      onPress={() => handleSelectSuggestion(item)}
+                      activeOpacity={0.6}
+                    >
+                      <Text style={[styles.suggestionText, { color: colors.textPrimary }]} numberOfLines={2}>
+                        {item.label}
+                      </Text>
+                      {item.city && item.state && (
+                        <Text style={[styles.suggestionSubtext, { color: colors.textSecondary }]}>
+                          {item.city}, {item.state} {item.postalCode}
+                        </Text>
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            {/* City, State, ZIP row */}
             <View style={styles.row}>
-              <View style={styles.halfWidth}>
+              <View style={[styles.field, styles.cityField]}>
                 <Text style={[styles.label, { color: colors.textSecondary }]}>City *</Text>
                 <TextInput
                   style={[styles.input, { backgroundColor: colors.background, color: colors.textPrimary, borderColor: colors.border }]}
@@ -135,9 +210,10 @@ export function AddPropertyModal({ visible, onClose, onSave, initialProperty }: 
                   onChangeText={setCity}
                   placeholder="Waldwick"
                   placeholderTextColor={colors.textTertiary}
+                  autoCapitalize="words"
                 />
               </View>
-              <View style={styles.quarterWidth}>
+              <View style={[styles.field, styles.stateField]}>
                 <Text style={[styles.label, { color: colors.textSecondary }]}>State</Text>
                 <TextInput
                   style={[styles.input, { backgroundColor: colors.background, color: colors.textPrimary, borderColor: colors.border }]}
@@ -149,7 +225,7 @@ export function AddPropertyModal({ visible, onClose, onSave, initialProperty }: 
                   autoCapitalize="characters"
                 />
               </View>
-              <View style={styles.quarterWidth}>
+              <View style={[styles.field, styles.zipField]}>
                 <Text style={[styles.label, { color: colors.textSecondary }]}>ZIP</Text>
                 <TextInput
                   style={[styles.input, { backgroundColor: colors.background, color: colors.textPrimary, borderColor: colors.border }]}
@@ -164,19 +240,21 @@ export function AddPropertyModal({ visible, onClose, onSave, initialProperty }: 
             </View>
 
             {/* Purchase Price */}
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Purchase Price</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: colors.background, color: colors.textPrimary, borderColor: colors.border }]}
-              value={purchasePrice}
-              onChangeText={setPurchasePrice}
-              placeholder="500000"
-              placeholderTextColor={colors.textTertiary}
-              keyboardType="number-pad"
-            />
+            <View style={styles.field}>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Purchase Price (for equity tracking)</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: colors.background, color: colors.textPrimary, borderColor: colors.border }]}
+                value={purchasePrice}
+                onChangeText={setPurchasePrice}
+                placeholder="500000"
+                placeholderTextColor={colors.textTertiary}
+                keyboardType="number-pad"
+              />
+            </View>
 
-            {/* Sq Ft & Year Built */}
+            {/* Sq Ft & Year Built row */}
             <View style={styles.row}>
-              <View style={styles.halfWidth}>
+              <View style={[styles.field, styles.halfField]}>
                 <Text style={[styles.label, { color: colors.textSecondary }]}>Square Feet</Text>
                 <TextInput
                   style={[styles.input, { backgroundColor: colors.background, color: colors.textPrimary, borderColor: colors.border }]}
@@ -187,7 +265,7 @@ export function AddPropertyModal({ visible, onClose, onSave, initialProperty }: 
                   keyboardType="number-pad"
                 />
               </View>
-              <View style={styles.halfWidth}>
+              <View style={[styles.field, styles.halfField]}>
                 <Text style={[styles.label, { color: colors.textSecondary }]}>Year Built</Text>
                 <TextInput
                   style={[styles.input, { backgroundColor: colors.background, color: colors.textPrimary, borderColor: colors.border }]}
@@ -196,21 +274,25 @@ export function AddPropertyModal({ visible, onClose, onSave, initialProperty }: 
                   placeholder="1990"
                   placeholderTextColor={colors.textTertiary}
                   keyboardType="number-pad"
+                  maxLength={4}
                 />
               </View>
             </View>
           </ScrollView>
 
+          {/* Save Button */}
           <Pressable
             style={[styles.saveBtn, { backgroundColor: isValid ? colors.primary : colors.gray300 }]}
             onPress={handleSave}
             disabled={!isValid}
           >
-            <Text style={[styles.saveBtnText, { color: isValid ? colors.white : colors.textTertiary }]}>Add Property</Text>
+            <Text style={[styles.saveBtnText, { color: isValid ? colors.white : colors.textTertiary }]}>
+              {initialProperty ? 'Save Changes' : 'Add Property'}
+            </Text>
           </Pressable>
-        </Pressable>
+        </View>
       </KeyboardAvoidingView>
-    </Pressable>
+    </View>
   );
 }
 
@@ -221,11 +303,18 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    justifyContent: 'flex-end',
     zIndex: 1000,
   },
+  backdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+  },
   keyboardView: {
+    flex: 1,
     justifyContent: 'flex-end',
   },
   modal: {
@@ -233,49 +322,82 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     padding: 20,
     paddingBottom: 34,
-    maxHeight: '90%',
+    maxHeight: '85%',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   title: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   cancelBtn: {
     fontSize: 16,
+    fontWeight: '600',
   },
   form: {
     maxHeight: 400,
   },
+  field: {
+    marginBottom: 12,
+  },
   label: {
     fontSize: 13,
-    fontWeight: '500',
+    fontWeight: '600',
     marginBottom: 6,
-    marginTop: 12,
   },
   input: {
-    borderRadius: 10,
+    borderRadius: 12,
     borderWidth: 1,
     paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingVertical: 14,
     fontSize: 16,
+  },
+  suggestionsContainer: {
+    marginTop: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    maxHeight: 200,
+    overflow: 'hidden',
+  },
+  suggestionsScroll: {
+    flexGrow: 0,
+  },
+  suggestionItem: {
+    padding: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(0,0,0,0.1)',
+  },
+  suggestionText: {
+    fontSize: 15,
+    fontWeight: '500',
+    lineHeight: 20,
+  },
+  suggestionSubtext: {
+    fontSize: 12,
+    marginTop: 2,
   },
   row: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 10,
   },
-  halfWidth: {
+  cityField: {
     flex: 1,
   },
-  quarterWidth: {
-    flex: 0.5,
+  stateField: {
+    width: 70,
+  },
+  zipField: {
+    width: 90,
+  },
+  halfField: {
+    flex: 1,
   },
   saveBtn: {
-    marginTop: 20,
+    marginTop: 16,
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',

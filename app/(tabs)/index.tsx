@@ -12,6 +12,9 @@ import { HomeHealthCard } from '../../components/HomeHealthCard';
 import { ZestimateCard } from '../../components/ZestimateCard';
 import { SeasonalTipsCard } from '../../components/SeasonalTipsCard';
 import { SeasonalTipsModal } from '../../components/SeasonalTipsModal';
+import { WeatherBanner } from '../../components/WeatherBanner';
+import { WeatherModal } from '../../components/WeatherModal';
+import { WeatherData } from '../../lib/weather';
 import { AddTaskModal } from '../../components/AddTaskModal';
 import { AddPropertyModal } from '../../components/AddPropertyModal';
 import { AddInventoryModal } from '../../components/AddInventoryModal';
@@ -71,6 +74,9 @@ export default function HomeScreen() {
   const [zestimateLoading, setZestimateLoading] = useState(false);
   const [zestimateError, setZestimateError] = useState<string | null>(null);
   const [seasonalModalVisible, setSeasonalModalVisible] = useState(false);
+  const [weatherModalVisible, setWeatherModalVisible] = useState(false);
+  const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
+  const [upcomingExpanded, setUpcomingExpanded] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
   // Reset scroll position when screen comes into focus
@@ -146,7 +152,8 @@ export default function HomeScreen() {
   const TaskRow = ({ task }: { task: Task }) => {
     const statusColor = getStatusColor(task.status, colors);
     const priorityColor = getPriorityColor(task.priority, colors);
-    const swipeableRef = useRef<Swipeable>(null);
+const swipeableRef = useRef<Swipeable>(null);
+    const isCompleted = task.status === 'completed';
     
     const handleComplete = () => {
       swipeableRef.current?.close();
@@ -159,9 +166,10 @@ export default function HomeScreen() {
     };
     
     const renderRightActions = (_progress: any, dragX: any) => {
+      const swipeWidth = isCompleted ? 80 : 120;
       const translateX = dragX.interpolate({
-        inputRange: [-120, 0],
-        outputRange: [0, 120],
+        inputRange: [-swipeWidth, 0],
+        outputRange: [0, swipeWidth],
         extrapolate: 'clamp',
       });
 
@@ -172,9 +180,11 @@ export default function HomeScreen() {
             { transform: [{ translateX }] }
           ]}
         >
-          <Pressable onPress={handleComplete} style={[styles.swipeAction, styles.swipeActionComplete, { backgroundColor: colors.success }]}>
-            <Ionicons name="checkmark" size={24} color="white" />
-          </Pressable>
+          {!isCompleted && (
+            <Pressable onPress={handleComplete} style={[styles.swipeAction, styles.swipeActionComplete, { backgroundColor: colors.success }]}>
+              <Ionicons name="checkmark" size={24} color="white" />
+            </Pressable>
+          )}
           <Pressable onPress={handleDelete} style={[styles.swipeAction, styles.swipeActionDelete, { backgroundColor: colors.error }]}>
             <Ionicons name="trash" size={22} color="white" />
           </Pressable>
@@ -221,6 +231,7 @@ export default function HomeScreen() {
   };
 
   // Refresh Zestimate manually
+  // Refresh Zestimate manually
   const refreshZestimate = async () => {
     if (!homeInfo.address || !homeInfo.city) return;
     
@@ -255,8 +266,8 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <ScrollView ref={scrollViewRef} style={styles.scrollView} contentContainerStyle={styles.content}>
-        {/* Property Selector */}
+      {/* Sticky Property Selector at Top */}
+      <View style={[styles.stickyHeader, { backgroundColor: colors.background }]}>
         <ScrollView 
           horizontal 
           showsHorizontalScrollIndicator={false}
@@ -271,8 +282,8 @@ export default function HomeScreen() {
                 styles.propertyCard,
                 property.id === activePropertyId && styles.propertyCardActive,
                 { 
-                  backgroundColor: colors.surface,
-                  borderColor: property.id === activePropertyId ? colors.primary : colors.border 
+                  backgroundColor: property.id === activePropertyId ? colors.primary + '15' : colors.surface,
+                  borderColor: colors.border
                 }
               ]}
               onPress={() => property.id && setActiveProperty(property.id)}
@@ -285,7 +296,7 @@ export default function HomeScreen() {
               <Text 
                 style={[
                   styles.propertyName, 
-                  { color: property.id === activePropertyId ? colors.textPrimary : colors.textSecondary }
+                  { color: property.id === activePropertyId ? colors.primary : colors.textSecondary }
                 ]} 
                 numberOfLines={1}
               >
@@ -302,6 +313,16 @@ export default function HomeScreen() {
             <Ionicons name="add" size={20} color={colors.textTertiary} />
           </Pressable>
         </ScrollView>
+      </View>
+
+      {/* Scrollable Content Below */}
+      <ScrollView ref={scrollViewRef} style={styles.scrollView} contentContainerStyle={styles.content}>
+
+        {/* Weather Banner */}
+        <WeatherBanner 
+          onPress={() => setWeatherModalVisible(true)}
+          onWeatherLoad={(data) => setWeatherData(data)}
+        />
 
         {/* Home Health Card */}
         <HomeHealthCard 
@@ -339,9 +360,26 @@ export default function HomeScreen() {
             )}
           </View>
           {upcomingTasks.length > 0 ? (
-            upcomingTasks.slice(0, 3).map(task => (
-              <TaskRow key={task.id} task={task} />
-            ))
+            <>
+              {(upcomingExpanded ? upcomingTasks : upcomingTasks.slice(0, 3)).map(task => (
+                <TaskRow key={task.id} task={task} />
+              ))}
+              {upcomingTasks.length > 3 && (
+                <Pressable 
+                  style={[styles.expandButton, { backgroundColor: colors.surface }]}
+                  onPress={() => setUpcomingExpanded(!upcomingExpanded)}
+                >
+                  <Text style={[styles.expandText, { color: colors.primary }]}>
+                    {upcomingExpanded ? 'Show Less' : `See all ${upcomingTasks.length} tasks`}
+                  </Text>
+                  <Ionicons 
+                    name={upcomingExpanded ? 'chevron-up' : 'chevron-down'} 
+                    size={16} 
+                    color={colors.primary} 
+                  />
+                </Pressable>
+              )}
+            </>
           ) : (
             <View style={[styles.emptyState, { backgroundColor: colors.surface }]}>
               <Ionicons name="checkmark-circle" size={24} color={colors.success} />
@@ -426,14 +464,31 @@ export default function HomeScreen() {
         visible={seasonalModalVisible}
         onClose={() => setSeasonalModalVisible(false)}
         onAddTask={(tip) => {
-          // Create a task from the tip (modal stays open for more adds)
+          // Create a task from the tip as completed (modal stays open for more)
           addTask({
             title: tip,
             description: `Seasonal maintenance task for ${new Date().toLocaleDateString('en-US', { month: 'long' })}`,
             category: 'other',
             priority: 'medium',
             dueDate: new Date().toISOString().split('T')[0],
-            status: 'scheduled',
+            status: 'completed',
+          });
+        }}
+      />
+
+      {/* Weather Modal */}
+      <WeatherModal
+        visible={weatherModalVisible}
+        weather={weatherData}
+        onClose={() => setWeatherModalVisible(false)}
+        onAddTask={(title) => {
+          addTask({
+            title,
+            description: 'Added from weather suggestions',
+            category: 'other',
+            priority: 'medium',
+            dueDate: new Date().toISOString().split('T')[0],
+            status: 'completed',
           });
         }}
       />
@@ -454,6 +509,11 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  stickyHeader: {
+    paddingTop: 16,
+    paddingHorizontal: 16,
+    paddingBottom: 0,
   },
   scrollView: {
     flex: 1,
@@ -558,6 +618,19 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 14,
+  },
+  expandButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    marginTop: 8,
+    borderRadius: 8,
+    gap: 6,
+  },
+  expandText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
   actionsRow: {
     flexDirection: 'row',

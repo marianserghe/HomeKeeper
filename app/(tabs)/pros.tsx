@@ -29,7 +29,7 @@ export default function ProsScreen() {
   const [searching, setSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<HerePlace[]>([]);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
-  const [searchRadius, setSearchRadius] = useState(10); // miles
+  const [searchRadius, setSearchRadius] = useState(25); // miles (default 25, more practical)
   const [allResults, setAllResults] = useState<HerePlace[]>([]); // All fetched results
   const [lastQuery, setLastQuery] = useState<string | null>(null);
   const [selectedPlace, setSelectedPlace] = useState<HerePlace | null>(null);
@@ -145,9 +145,12 @@ export default function ProsScreen() {
     setSearching(true);
     setSearchResults([]);
 
+    // Convert miles to meters for HERE API
+    const radiusMeters = Math.round(searchRadius * 1609.34);
+    
     // Use HERE API - pass category key directly (searchNearby handles expansion)
-    console.log('Searching HERE for:', categoryKey);
-    const results = await searchNearby(categoryKey, location.lat, location.lng, 80467);
+    console.log('Searching HERE for:', categoryKey, 'radius:', searchRadius, 'mi', '(', radiusMeters, 'm)');
+    const results = await searchNearby(categoryKey, location.lat, location.lng, radiusMeters);
     console.log('HERE results:', results.length, 'sample:', results[0]?.title, results[0]?.contacts?.[0]?.phone?.[0]?.value);
     setAllResults(results);
     setSearching(false);
@@ -161,8 +164,11 @@ export default function ProsScreen() {
     setSearching(true);
     setSearchResults([]);
     
+    // Convert miles to meters for HERE API
+    const radiusMeters = Math.round(searchRadius * 1609.34);
+    
     // Use HERE API (better coverage)
-    const results = await searchNearby(searchQuery.trim(), location.lat, location.lng, 80467);
+    const results = await searchNearby(searchQuery.trim(), location.lat, location.lng, radiusMeters);
     setAllResults(results);
     setSearching(false);
   };
@@ -324,12 +330,6 @@ export default function ProsScreen() {
                     </Pressable>
                   )}
                 </View>
-                
-                {pro.notes && (
-                  <Text style={[styles.proNotes, { color: colors.textTertiary }]} numberOfLines={2}>
-                    {pro.notes}
-                  </Text>
-                )}
               </Pressable>
             ))}
           </View>
@@ -367,7 +367,7 @@ export default function ProsScreen() {
           </View>
           
           {/* Manual ZIP Code */}
-          {locationError && !location && (
+          {(usingManualZip || locationError) && !location && (
             <View style={[styles.zipRow, { marginTop: 12 }]}>
               <TextInput
                 style={[styles.zipInput, { backgroundColor: colors.background, color: colors.textPrimary, borderColor: colors.border }]}
@@ -392,8 +392,8 @@ export default function ProsScreen() {
             <Pressable 
               style={[styles.switchLocationBtn, { borderColor: colors.border }]}
               onPress={() => {
+                setUsingManualZip(true);
                 setLocation(null);
-                setLocationError('GPS disabled - enter ZIP code');
               }}
             >
               <Ionicons name="swap-horizontal" size={14} color={colors.textSecondary} />
@@ -514,31 +514,6 @@ export default function ProsScreen() {
             </Text>
           </View>
         )}
-
-        {/* Suggested Categories */}
-        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
-          Quick Add by Type
-        </Text>
-        <View style={styles.categoriesGrid}>
-          {suggestedCategories.map(category => (
-            <Pressable
-              key={category.key}
-              style={[styles.categoryCard, { backgroundColor: colors.surface }]}
-              onPress={() => {
-                setSelectedCategory(category.key);
-                setModalVisible(true);
-              }}
-            >
-              <View style={[styles.categoryIcon, { backgroundColor: colors.primary + '20' }]}>
-                <Ionicons name={category.icon} size={22} color={colors.primary} />
-              </View>
-              <Text style={[styles.categoryLabel, { color: colors.textPrimary }]}>
-                {category.label}
-              </Text>
-              <Ionicons name="add" size={16} color={colors.textTertiary} />
-            </Pressable>
-          ))}
-        </View>
       </ScrollView>
       </KeyboardAvoidingView>
 
@@ -718,6 +693,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginTop: 8,
     marginBottom: 4,
   },
   radiusLabel: {
@@ -901,6 +877,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    marginBottom: 8,
   },
   zipInput: {
     flex: 1,
@@ -924,8 +901,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    paddingVertical: 8,
-    marginTop: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 16,
     borderRadius: 8,
     borderWidth: 1,
   },

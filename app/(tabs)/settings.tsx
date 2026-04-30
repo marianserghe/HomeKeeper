@@ -171,43 +171,51 @@ export default function SettingsScreen() {
                     )}
                   </Pressable>
 
-                  {property.id === activePropertyId ? (
-                    <View style={[styles.activeBadge, { backgroundColor: colors.primary + '20' }]}>
-                      <Text style={[styles.activeBadgeText, { color: colors.primary }]}>Active</Text>
-                    </View>
-                  ) : (
-                    <Pressable 
-                      style={[styles.setActiveBtn, { borderColor: colors.border }]}
-                      onPress={() => property.id && setActiveProperty(property.id)}
-                    >
-                      <Text style={[styles.setActiveText, { color: colors.textSecondary }]}>Set Active</Text>
-                    </Pressable>
-                  )}
+                  <View style={styles.propertyActions}>
+                    {property.id === activePropertyId ? (
+                      <View style={[styles.activeBadge, { backgroundColor: colors.primary + '20' }]}>
+                        <Text style={[styles.activeBadgeText, { color: colors.primary }]}>Active</Text>
+                      </View>
+                    ) : (
+                      <Pressable 
+                        style={[styles.setActiveBtn, { borderColor: colors.border }]}
+                        onPress={() => property.id && setActiveProperty(property.id)}
+                      >
+                        <Text style={[styles.setActiveText, { color: colors.textSecondary }]}>Set Active</Text>
+                      </Pressable>
+                    )}
+                    
+                    {properties.length > 1 && (
+                      <Pressable 
+                        style={[styles.deleteBtn, { borderColor: colors.error + '50' }]}
+                        onPress={() => {
+                          Alert.alert(
+                            'Delete Property',
+                            `Delete "${property.name || property.address || 'Property'}"? This will also delete all associated tasks, pros, and inventory items.`,
+                            [
+                              { text: 'Cancel', style: 'cancel' },
+                              { 
+                                text: 'Delete', 
+                                style: 'destructive',
+                                onPress: () => {
+                                  if (property.id) {
+                                    deleteProperty(property.id);
+                                  }
+                                }
+                              },
+                            ]
+                          );
+                        }}
+                      >
+                        <Ionicons name="trash-outline" size={16} color={colors.error} />
+                      </Pressable>
+                    )}
+                  </View>
                 </View>
               ))}
             </View>
           </View>
         )}
-
-        {/* Quick Stats */}
-        <View style={[styles.statsCard, { backgroundColor: colors.surface }]}>
-          <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: colors.primary }]}>{healthScore}</Text>
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Health</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: colors.warning }]}>{activePropertyTasks.length}</Text>
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Tasks</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: colors.success }]}>{activePropertyPros.length}</Text>
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Pros</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: colors.info }]}>{activePropertyInventory.length}</Text>
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Items</Text>
-          </View>
-        </View>
 
         {/* Preferences */}
         <View style={styles.section}>
@@ -663,6 +671,16 @@ const styles = StyleSheet.create({
   setActiveText: {
     fontSize: 12,
     fontWeight: '500',
+  },
+  propertyActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  deleteBtn: {
+    padding: 8,
+    borderRadius: 8,
+    borderWidth: 1,
   },
   editForm: {
     gap: 12,
