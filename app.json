@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Better HomeKeeper",
+    "name": "HomeKeeper",
     "slug": "homekeeper",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -15,14 +15,14 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.homekeeper.serghe.app"
+      "bundleIdentifier": "com.homekeeper.app"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#F59E0B"
       },
-      "package": "com.homekeeper.serghe.app"
+      "package": "com.homekeeper.app"
     },
     "web": {
       "bundler": "metro",
