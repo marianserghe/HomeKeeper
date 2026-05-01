@@ -55,8 +55,8 @@ function ThemedApp() {
   // Show loading spinner while checking AsyncStorage
   if (loading) {
     return (
-      <View style={[styles.loading, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
+      <View style={styles.loading}>
+        <ActivityIndicator size="large" color="#F59E0B" />
       </View>
     );
   }
@@ -100,5 +100,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#000000', // Always black
   },
 });
