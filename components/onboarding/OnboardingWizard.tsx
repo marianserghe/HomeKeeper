@@ -113,7 +113,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
     }));
     
     setSuggestedTasks(tasks);
-    setSelectedTasks(new Set(tasks.map(t => t.id)));
+    setSelectedTasks(new Set()); // Start with NO tasks selected - user chooses
     setLoadingTasks(false);
     setStep(2);
   };
