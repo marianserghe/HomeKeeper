@@ -57,11 +57,14 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
 
     const timeout = setTimeout(async () => {
       try {
+        console.log('Onboarding: Fetching autocomplete for:', address);
         const results = await autocompleteAddress(address);
+        console.log('Onboarding: Got', results.length, 'suggestions');
         setSuggestions(results);
         setShowSuggestions(results.length > 0);
       } catch (e) {
-        console.error('Autocomplete error:', e);
+        console.error('Onboarding: Autocomplete error:', e);
+        setSuggestions([]);
       }
     }, 300);
 

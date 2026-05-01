@@ -31,6 +31,12 @@ export interface PropertyInput {
 export async function autocompleteAddress(query: string): Promise<AddressSuggestion[]> {
   if (!query || query.length < 3) return [];
   
+  // Check if API key is available
+  if (!HERE_API_KEY) {
+    console.error('HERE_API_KEY is not set in environment variables');
+    return [];
+  }
+  
   try {
     // Filter to US addresses only for better results
     const url = `https://autocomplete.search.hereapi.com/v1/autocomplete?` +

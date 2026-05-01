@@ -48,16 +48,16 @@ function SplashScreen({ onFinish }: { onFinish: () => void }) {
   }, []);
 
   return (
-    <View style={[styles.splashContainer, { backgroundColor: colors.background }]}>
-      <Animated.View style={{ opacity: fadeAnim, transform: [{ scale: scaleAnim }] }}>
+    <View style={styles.splashContainer}>
+      <Animated.View style={[styles.splashLogoWrap, { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}>
         <Image 
           source={require('../../assets/logo.jpg')} 
           style={styles.splashLogo}
           resizeMode="contain"
         />
-        <Text style={[styles.splashAppName, { color: colors.textPrimary }]}>HomeKeeper</Text>
-        <Text style={[styles.splashVersion, { color: colors.textTertiary }]}>Version {APP_VERSION}</Text>
       </Animated.View>
+      <Text style={[styles.splashAppName, { color: colors.textPrimary }]}>HomeKeeper</Text>
+      <Text style={[styles.splashVersion, { color: colors.textTertiary }]}>Version {APP_VERSION}</Text>
     </View>
   );
 }
@@ -678,11 +678,20 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#000000', // Always black background
+  },
+  splashLogoWrap: {
+    // Amber glow effect
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 30,
+    elevation: 20,
   },
   splashLogo: {
-    width: 150,
-    height: 150,
-    borderRadius: 30,
+    width: 80,
+    height: 80,
+    borderRadius: 16,
   },
   splashAppName: {
     fontSize: 32,
