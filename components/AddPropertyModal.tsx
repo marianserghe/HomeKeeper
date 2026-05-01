@@ -61,11 +61,13 @@ export function AddPropertyModal({ visible, onClose, onSave, initialProperty }: 
 
     const timeout = setTimeout(async () => {
       try {
+        console.log('[AddPropertyModal] Fetching autocomplete for:', address);
         const results = await autocompleteAddress(address);
+        console.log('[AddPropertyModal] Got', results.length, 'suggestions:', results);
         setSuggestions(results);
         setShowSuggestions(results.length > 0);
       } catch (e) {
-        console.error('Autocomplete error:', e);
+        console.error('[AddPropertyModal] Autocomplete error:', e);
         setSuggestions([]);
       }
     }, 300);
