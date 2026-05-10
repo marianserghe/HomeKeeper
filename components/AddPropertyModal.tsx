@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TextInput, Pressable, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity, Keyboard } from 'react-native';
 import { useTheme } from '../contexts/ThemeContext';
 import { HomeInfo } from '../contexts/AppContext';
@@ -25,7 +25,7 @@ export function AddPropertyModal({ visible, onClose, onSave, initialProperty }: 
   const [yearBuilt, setYearBuilt] = useState('');
   const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [isSelecting, setIsSelecting] = useState(false); // Prevent autocomplete refetch after selection
+  const selectingRef = useRef(false); // Prevent autocomplete refetch after selection (useRef for synchronous check)
 
   // Populate form when initialProperty changes
   useEffect(() => {
@@ -50,13 +50,13 @@ export function AddPropertyModal({ visible, onClose, onSave, initialProperty }: 
     }
     setSuggestions([]);
     setShowSuggestions(false);
-    setIsSelecting(false);
+    selectingRef.current = false;
   }, [initialProperty]);
 
   // Address autocomplete
   useEffect(() => {
-    // Don't fetch if we just selected an address
-    if (isSelecting) return;
+    // Don't fetch if we just selected an address (ref is synchronous)
+    if (selectingRef.current) return;
     
     if (!address || address.length < 3) {
       setSuggestions([]);
@@ -78,13 +78,13 @@ export function AddPropertyModal({ visible, onClose, onSave, initialProperty }: 
     }, 300);
 
     return () => clearTimeout(timeout);
-  }, [address, isSelecting]);
+  }, [address]);
 
   const handleSelectSuggestion = (suggestion: AddressSuggestion) => {
     console.log('=== SUGGESTION TAPPED ===');
     
-    // Prevent refetch after selection
-    setIsSelecting(true);
+    // Prevent refetch after selection (ref is synchronous, state is async)
+    selectingRef.current = true;
     
     // Hide suggestions immediately
     setShowSuggestions(false);
@@ -98,7 +98,9 @@ export function AddPropertyModal({ visible, onClose, onSave, initialProperty }: 
     if (suggestion.postalCode) setZip(suggestion.postalCode);
     
     // Reset selecting flag after a short delay
-    setTimeout(() => setIsSelecting(false), 500);
+    setTimeout(() => {
+      selectingRef.current = false;
+    }, 500);
   };
 
   const handleSave = async () => {
