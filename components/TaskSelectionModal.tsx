@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -24,6 +24,7 @@ export function TaskSelectionModal({ visible, onClose, onConfirm, propertyName }
   const { colors } = useTheme();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [selectedFrequency, setSelectedFrequency] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const frequencies = [
     { key: 'all', label: 'All' },
@@ -33,15 +34,29 @@ export function TaskSelectionModal({ visible, onClose, onConfirm, propertyName }
     { key: 'annual', label: 'Yearly' },
   ];
 
-  const filteredTemplates = selectedFrequency === 'all'
-    ? TASK_TEMPLATES
-    : TASK_TEMPLATES_BY_FREQUENCY[selectedFrequency as keyof typeof TASK_TEMPLATES_BY_FREQUENCY] || [];
+  const filteredTemplates = useMemo(() => {
+    let templates = selectedFrequency === 'all'
+      ? TASK_TEMPLATES
+      : TASK_TEMPLATES_BY_FREQUENCY[selectedFrequency as keyof typeof TASK_TEMPLATES_BY_FREQUENCY] || [];
+
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      templates = templates.filter(t =>
+        t.title.toLowerCase().includes(query) ||
+        t.description?.toLowerCase().includes(query) ||
+        t.category.toLowerCase().includes(query)
+      );
+    }
+
+    return templates;
+  }, [selectedFrequency, searchQuery]);
 
   // Reset selection when modal opens
   useEffect(() => {
     if (visible) {
       setSelectedIds(new Set());
       setSelectedFrequency('all');
+      setSearchQuery('');
     }
   }, [visible]);
 
@@ -107,8 +122,8 @@ export function TaskSelectionModal({ visible, onClose, onConfirm, propertyName }
         </Text>
 
         {/* Filter tabs */}
-        <ScrollView 
-          horizontal 
+        <ScrollView
+          horizontal
           showsHorizontalScrollIndicator={false}
           style={styles.filterContainer}
           contentContainerStyle={styles.filterContent}
@@ -132,6 +147,25 @@ export function TaskSelectionModal({ visible, onClose, onConfirm, propertyName }
           ))}
         </ScrollView>
 
+        {/* Search */}
+        <View style={[styles.searchContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Ionicons name="search" size={18} color={colors.textTertiary} style={styles.searchIcon} />
+          <TextInput
+            style={[styles.searchInput, { color: colors.textPrimary }]}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Search tasks..."
+            placeholderTextColor={colors.textTertiary}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          {searchQuery.length > 0 && (
+            <Pressable onPress={() => setSearchQuery('')} style={styles.clearButton}>
+              <Ionicons name="close-circle" size={18} color={colors.textTertiary} />
+            </Pressable>
+          )}
+        </View>
+
         {/* Select all / none */}
         <View style={styles.selectionRow}>
           <Pressable onPress={selectAll} style={styles.selectionButton}>
@@ -151,7 +185,7 @@ export function TaskSelectionModal({ visible, onClose, onConfirm, propertyName }
                 key={template.id}
                 style={[
                   styles.taskItem,
-                  { 
+                  {
                     backgroundColor: colors.surface,
                     borderColor: isSelected ? colors.primary : colors.border,
                     borderWidth: isSelected ? 2 : 1,
@@ -248,6 +282,26 @@ const styles = StyleSheet.create({
   filterText: {
     fontSize: 14,
     fontWeight: '600',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    paddingVertical: 10,
+    fontSize: 16,
+  },
+  clearButton: {
+    padding: 4,
   },
   selectionRow: {
     flexDirection: 'row',

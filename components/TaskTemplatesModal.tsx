@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   Pressable,
   Modal,
   Platform,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -25,6 +26,7 @@ interface TaskTemplatesModalProps {
 export function TaskTemplatesModal({ visible, onClose, onAddTemplate, existingTemplateIds }: TaskTemplatesModalProps) {
   const { colors, isDark } = useTheme();
   const [selectedFrequency, setSelectedFrequency] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<TaskTemplate | null>(null);
   const [tempDate, setTempDate] = useState(new Date());
@@ -37,9 +39,22 @@ export function TaskTemplatesModal({ visible, onClose, onAddTemplate, existingTe
     { key: 'annual', label: 'Yearly' },
   ];
 
-  const filteredTemplates = selectedFrequency === 'all'
-    ? TASK_TEMPLATES
-    : TASK_TEMPLATES_BY_FREQUENCY[selectedFrequency as keyof typeof TASK_TEMPLATES_BY_FREQUENCY] || [];
+  const filteredTemplates = useMemo(() => {
+    let templates = selectedFrequency === 'all'
+      ? TASK_TEMPLATES
+      : TASK_TEMPLATES_BY_FREQUENCY[selectedFrequency as keyof typeof TASK_TEMPLATES_BY_FREQUENCY] || [];
+    
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      templates = templates.filter(t => 
+        t.title.toLowerCase().includes(query) ||
+        t.description?.toLowerCase().includes(query) ||
+        t.category.toLowerCase().includes(query)
+      );
+    }
+    
+    return templates;
+  }, [selectedFrequency, searchQuery]);
 
   const isAdded = (templateId: string) => existingTemplateIds.includes(templateId);
 
@@ -99,6 +114,25 @@ export function TaskTemplatesModal({ visible, onClose, onAddTemplate, existingTe
           </Pressable>
           <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Task Templates</Text>
           <View style={styles.headerButton} />
+        </View>
+
+        {/* Search */}
+        <View style={[styles.searchContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Ionicons name="search" size={18} color={colors.textTertiary} style={styles.searchIcon} />
+          <TextInput
+            style={[styles.searchInput, { color: colors.textPrimary }]}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Search tasks..."
+            placeholderTextColor={colors.textTertiary}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          {searchQuery.length > 0 && (
+            <Pressable onPress={() => setSearchQuery('')} style={styles.clearButton}>
+              <Ionicons name="close-circle" size={18} color={colors.textTertiary} />
+            </Pressable>
+          )}
         </View>
 
         {/* Frequency Filter */}
@@ -284,6 +318,26 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 12,
+    marginVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    paddingVertical: 10,
+    fontSize: 16,
+  },
+  clearButton: {
+    padding: 4,
   },
   filterScroll: {
     maxHeight: 44,
