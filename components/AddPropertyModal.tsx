@@ -29,6 +29,9 @@ export function AddPropertyModal({ visible, onClose, onSave, initialProperty }: 
 
   // Populate form when initialProperty changes
   useEffect(() => {
+    // Block autocomplete when populating from initialProperty
+    selectingRef.current = true;
+    
     if (initialProperty) {
       setName(initialProperty.name || '');
       setAddress(initialProperty.address || '');
@@ -50,7 +53,11 @@ export function AddPropertyModal({ visible, onClose, onSave, initialProperty }: 
     }
     setSuggestions([]);
     setShowSuggestions(false);
-    selectingRef.current = false;
+    
+    // Allow autocomplete again after a short delay
+    setTimeout(() => {
+      selectingRef.current = false;
+    }, 100);
   }, [initialProperty]);
 
   // Address autocomplete
