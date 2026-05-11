@@ -57,6 +57,19 @@ interface GeocodeResponse {
   }>;
 }
 
+// HERE category IDs for more precise searches
+const HERE_CATEGORIES: Record<string, string[]> = {
+  'handyman': ['700-7400-0118', '700-7400-0119'], // Handyman services
+  'plumber': ['700-7400-0115'], // Plumbing
+  'electrician': ['700-7400-0116'], // Electrical
+  'hvac': ['700-7400-0117'], // HVAC
+  'landscaper': ['700-7300-0108', '700-7300-0109'], // Landscaping, Lawn care
+  'cleaner': ['700-7600-0102', '700-7600-0103'], // Cleaning services
+  'pest': ['700-7400-0122'], // Pest control
+  'roofer': ['700-7400-0123'], // Roofing
+  'painter': ['700-7400-0120'], // Painting
+};
+
 // Search for places near a location
 export async function searchNearby(
   query: string,
@@ -67,46 +80,81 @@ export async function searchNearby(
   const allResults: HerePlace[] = [];
   const seenIds = new Set<string>();
   
-  // Add results helper (dedupe and ensure distance)
+  // Calculate distance helper
+  const calculateDistance = (lat: number, lng: number): number => {
+    const R = 6371e3;
+    const φ1 = latitude * Math.PI / 180;
+    const φ2 = lat * Math.PI / 180;
+    const Δφ = (lat - latitude) * Math.PI / 180;
+    const Δλ = (lng - longitude) * Math.PI / 180;
+    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2) * Math.sin(Δλ/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  };
+  
+  // Add results helper (dedupe, calculate distance, filter quality)
   const addResults = (items: HerePlace[]) => {
     for (const item of items) {
       if (!seenIds.has(item.id)) {
         seenIds.add(item.id);
-        // Calculate distance if not provided by API
+        
+        // Calculate distance if not provided
         if (!item.distance) {
-          const R = 6371e3; // Earth radius in meters
-          const φ1 = latitude * Math.PI / 180;
-          const φ2 = item.position.lat * Math.PI / 180;
-          const Δφ = (item.position.lat - latitude) * Math.PI / 180;
-          const Δλ = (item.position.lng - longitude) * Math.PI / 180;
-          const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2) * Math.sin(Δλ/2);
-          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-          item.distance = R * c;
+          item.distance = calculateDistance(item.position.lat, item.position.lng);
         }
-        allResults.push(item);
+        
+        // Filter: Must have at least a phone OR website (basic quality check)
+        const hasPhone = item.contacts?.some(c => c.phone?.length);
+        const hasWebsite = item.contacts?.some(c => c.www?.length);
+        const hasAddress = item.address?.label;
+        
+        // Keep results that have contact info or are clearly businesses
+        if (hasPhone || hasWebsite || hasAddress) {
+          allResults.push(item);
+        }
       }
     }
   };
   
-  // Search terms to try - broader search for better results
+  const queryLower = query.toLowerCase();
+  const categoryIds = HERE_CATEGORIES[queryLower];
+  
+  // Strategy 1: Use BROWSE endpoint with category IDs (most precise)
+  if (categoryIds && categoryIds.length > 0) {
+    for (const catId of categoryIds) {
+      const url = `${BROWSE_URL}?at=${latitude},${longitude}&radius=${radiusMeters}&categories=${catId}&apiKey=${HERE_API_KEY}&limit=50`;
+      
+      try {
+        const response = await fetch(url);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.items) {
+            addResults(data.items);
+          }
+        }
+      } catch (e) {
+        console.error('Browse error for category:', catId, e);
+      }
+    }
+  }
+  
+  // Strategy 2: Use DISCOVER with targeted search terms (fallback/broader)
   const searchTerms: Record<string, string[]> = {
-    'handyman': ['handyman', 'handyman service', 'home repair', 'contractor', 'home improvement'],
-    'plumber': ['plumber', 'plumbing service', 'plumbing contractor', 'plumbing repair'],
-    'electrician': ['electrician', 'electrical contractor', 'electrical service', 'electric', 'licensed electrician'],
-    'hvac': ['hvac', 'hvac service', 'air conditioning', 'heating and cooling', 'ac repair', 'heating repair'],
-    'landscaper': ['landscaping', 'lawn care', 'landscaper', 'lawn service', 'garden service', 'yard maintenance'],
-    'cleaner': ['cleaning service', 'house cleaning', 'maid', 'cleaning', 'home cleaning'],
-    'pest': ['pest control', 'exterminator', 'pest removal', 'bug control'],
-    'roofer': ['roofing', 'roofer', 'roofing contractor', 'roof repair', 'roofing service'],
-    'painter': ['painter', 'painting service', 'house painting', 'painting contractor', 'interior painting', 'exterior painting'],
+    'handyman': ['licensed handyman', 'home repair service', 'general contractor residential'],
+    'plumber': ['licensed plumber', 'plumbing company', 'plumbing repair service'],
+    'electrician': ['licensed electrician', 'electrical contractor', 'electrician service'],
+    'hvac': ['hvac company', 'heating and cooling', 'air conditioning service'],
+    'landscaper': ['landscaping company', 'lawn care service', 'landscape design'],
+    'cleaner': ['house cleaning service', 'residential cleaning', 'maid service'],
+    'pest': ['pest control service', 'exterminator', 'termite treatment'],
+    'roofer': ['roofing company', 'roof repair service', 'licensed roofer'],
+    'painter': ['house painting', 'painting contractor', 'residential painter'],
   };
   
-  const queryLower = query.toLowerCase();
   const terms = searchTerms[queryLower] || [query];
   
-  // Try each search term - collect all unique results
   for (const term of terms) {
-    const url = `${DISCOVER_URL}?at=${latitude},${longitude}&radius=${radiusMeters}&q=${encodeURIComponent(term)}&apiKey=${HERE_API_KEY}&limit=50`;
+    const url = `${DISCOVER_URL}?at=${latitude},${longitude}&radius=${radiusMeters}&q=${encodeURIComponent(term)}&apiKey=${HERE_API_KEY}&limit=30`;
     
     try {
       const response = await fetch(url);
@@ -121,7 +169,10 @@ export async function searchNearby(
     }
   }
   
-  console.log('HERE search results:', allResults.length, 'for query:', query, 'terms tried:', terms.length);
+  // Sort by distance
+  allResults.sort((a, b) => (a.distance || 0) - (b.distance || 0));
+  
+  console.log('HERE search results:', allResults.length, 'for query:', query);
   return allResults;
 }
 
