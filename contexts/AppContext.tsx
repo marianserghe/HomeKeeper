@@ -396,15 +396,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const id = generateId();
     const property: HomeInfo = { ...propertyData, id };
     
-    // Generate sample tasks for the new property
-    const { generateSampleTasks } = require('../lib/tasks');
-    const newTasks = generateSampleTasks(id);
-    
+    // DO NOT auto-add tasks - let user select which ones they want
     setState(prev => ({
       ...prev,
       properties: [...prev.properties, property],
       activePropertyId: prev.activePropertyId || id,
-      tasks: [...prev.tasks, ...newTasks],
     }));
     return id;
   };

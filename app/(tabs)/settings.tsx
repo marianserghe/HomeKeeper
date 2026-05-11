@@ -7,6 +7,8 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useApp } from '../../contexts/AppContext';
 import { autocompleteAddress, AddressSuggestion } from '../../lib/zestimate';
 import { AddPropertyModal } from '../../components/AddPropertyModal';
+import { TaskSelectionModal } from '../../components/TaskSelectionModal';
+import { generateTaskFromTemplate, TASK_TEMPLATES } from '../../lib/taskTemplates';
 import { HelpModal } from '../../components/HelpModal';
 import { PrivacyPolicyModal } from '../../components/PrivacyPolicyModal';
 import { TermsOfServiceModal } from '../../components/TermsOfServiceModal';
@@ -19,10 +21,13 @@ const APP_VERSION = '1.0.0';
 
 export default function SettingsScreen() {
   const { colors, theme, setTheme } = useTheme();
-  const { homeInfo, updateHomeInfo, settings, updateSettings, activePropertyTasks, activePropertyPros, activePropertyInventory, healthScore, clearAllData, properties, activePropertyId, reorderProperties, setActiveProperty, deleteProperty, addProperty, updateProperty, loadData } = useApp();
+  const { homeInfo, updateHomeInfo, settings, updateSettings, activePropertyTasks, activePropertyPros, activePropertyInventory, healthScore, clearAllData, properties, activePropertyId, reorderProperties, setActiveProperty, deleteProperty, addProperty, updateProperty, loadData, addTask } = useApp();
   
   const [editingProperty, setEditingProperty] = useState<typeof properties[0] | null>(null);
   const [addPropertyModalVisible, setAddPropertyModalVisible] = useState(false);
+  const [taskSelectionModalVisible, setTaskSelectionModalVisible] = useState(false);
+  const [newPropertyId, setNewPropertyId] = useState<string | null>(null);
+  const [newPropertyName, setNewPropertyName] = useState<string | undefined>(undefined);
   const [helpModalVisible, setHelpModalVisible] = useState(false);
   const [privacyModalVisible, setPrivacyModalVisible] = useState(false);
   const [termsModalVisible, setTermsModalVisible] = useState(false);
@@ -349,12 +354,42 @@ export default function SettingsScreen() {
             if (editingProperty?.id) {
               updateProperty(editingProperty.id, propertyData);
             } else {
-              addProperty(propertyData);
+              // Add property first, then show task selection
+              const propertyId = addProperty(propertyData);
+              setNewPropertyId(propertyId);
+              setNewPropertyName(propertyData.name || propertyData.address);
+              setTaskSelectionModalVisible(true);
             }
             setAddPropertyModalVisible(false);
             setEditingProperty(null);
           }}
           initialProperty={editingProperty}
+        />
+
+        {/* Task Selection Modal */}
+        <TaskSelectionModal
+          visible={taskSelectionModalVisible}
+          onClose={() => {
+            setTaskSelectionModalVisible(false);
+            setNewPropertyId(null);
+            setNewPropertyName(undefined);
+          }}
+          onConfirm={(selectedTemplateIds) => {
+            if (newPropertyId) {
+              // Create tasks from selected templates
+              selectedTemplateIds.forEach(templateId => {
+                const template = TASK_TEMPLATES.find(t => t.id === templateId);
+                if (template) {
+                  const task = generateTaskFromTemplate(template, newPropertyId);
+                  addTask(task);
+                }
+              });
+            }
+            setTaskSelectionModalVisible(false);
+            setNewPropertyId(null);
+            setNewPropertyName(undefined);
+          }}
+          propertyName={newPropertyName}
         />
 
         {/* Help Modal */}
