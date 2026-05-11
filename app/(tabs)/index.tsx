@@ -319,10 +319,12 @@ const swipeableRef = useRef<Swipeable>(null);
       <ScrollView ref={scrollViewRef} style={styles.scrollView} contentContainerStyle={styles.content}>
 
         {/* Weather Banner */}
-        <WeatherBanner 
-          onPress={() => setWeatherModalVisible(true)}
-          onWeatherLoad={(data) => setWeatherData(data)}
-        />
+        <View style={{ marginTop: -8 }}>
+          <WeatherBanner
+            onPress={() => setWeatherModalVisible(true)}
+            onWeatherLoad={(data) => setWeatherData(data)}
+          />
+        </View>
 
         {/* Home Health Card */}
         <HomeHealthCard 
@@ -519,8 +521,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    padding: 16,
+    paddingHorizontal: 16,
     paddingBottom: 100,
+    paddingTop: 0,
   },
   propertyScroll: {
     marginBottom: 16,
