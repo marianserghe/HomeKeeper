@@ -10,10 +10,11 @@ import { useTheme } from '../contexts/ThemeContext';
 interface HomeHealthCardProps {
   score: number;
   overdueCount: number;
+  hasTasks?: boolean;
   onPress?: () => void;
 }
 
-export function HomeHealthCard({ score, overdueCount, onPress }: HomeHealthCardProps) {
+export function HomeHealthCard({ score, overdueCount, hasTasks = true, onPress }: HomeHealthCardProps) {
   const { colors } = useTheme();
 
   // Animation values
@@ -105,6 +106,9 @@ export function HomeHealthCard({ score, overdueCount, onPress }: HomeHealthCardP
 
   // Subtitle message
   const getSubtitle = () => {
+    if (!hasTasks) {
+      return 'Add tasks to start tracking your home health';
+    }
     if (overdueCount > 0) {
       return `${overdueCount} overdue task${overdueCount > 1 ? 's' : ''} waiting`;
     }

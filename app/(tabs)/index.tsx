@@ -327,9 +327,10 @@ const swipeableRef = useRef<Swipeable>(null);
         </View>
 
         {/* Home Health Card */}
-        <HomeHealthCard 
-          score={healthScore} 
+        <HomeHealthCard
+          score={healthScore}
           overdueCount={overdueTasks.length}
+          hasTasks={tasks.length > 0}
           onPress={() => router.push('/tasks')}
         />
 
